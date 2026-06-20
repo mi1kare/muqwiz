@@ -22,7 +22,7 @@ window.scanGoogleDrive = async function(link) {
     console.log('📁 ID папки:', folderId);
 
     // ВСТАВЬ СВОЙ API-КЛЮЧ ВМЕСТО "ТВОЙ_КЛЮЧ_ЗДЕСЬ"!
-    const apiKey = AIzaSyAKtOvwvOQOBsGy4vFi_HmSN6U33WcWcbE;
+    const apiKey = "AIzaSyAKtOvwvOQOBsGy4vFi_HmSN6U33WcWcbE";
     const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType)&corpora=user`;
 
     console.log('📡 Отправляем запрос к Google API...');
