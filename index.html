@@ -1,0 +1,2908 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MuQwiz</title>
+
+    <!-- ===== СОБРАННЫЙ КОД ДЛЯ GOOGLE ДИСКА ===== -->
+    <script src="dist/bundle.js"></script>
+
+    <style>
+        /* ===== БАЗА ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #f5f0eb;
+            --card: #ffffff;
+            --text: #2c2c2c;
+            --text-secondary: #6b5a4a;
+            --border: #e8ddd0;
+            --accent: #8b3a2a;
+            --accent-hover: #6b2a1a;
+            --gold: #f5a623;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --green: #2d7d46;
+            --red: #e94560;
+            --blue: #4285f4;
+        }
+
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+
+        body.dark {
+            --bg: #1a1a2e;
+            --card: #16213e;
+            --text: #eee;
+            --text-secondary: #aaa;
+            --border: #2a3a5e;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 16px 16px 80px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            opacity: 0.8;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        .btn-gold {
+            background: var(--gold);
+            color: #1a1a2e;
+        }
+        .btn-gold:hover {
+            opacity: 0.8;
+        }
+
+        .btn-danger {
+            background: var(--red);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            opacity: 0.8;
+        }
+
+        .btn-google {
+            background: var(--blue);
+            color: #fff;
+        }
+        .btn-google:hover {
+            opacity: 0.8;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            background: var(--bg);
+            color: var(--text);
+            transition: 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .select-field {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            background: var(--bg);
+            color: var(--text);
+            appearance: none;
+        }
+        .select-field:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* ===== ОПРОСНИК ===== */
+        #onboarding {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+        #onboarding .card {
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        #onboarding .logo {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        #onboarding .logo span {
+            color: var(--gold);
+        }
+        #onboarding .sub {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        #onboarding .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        #onboarding .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        /* ===== НИЖНЯЯ ПАНЕЛЬ ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 env(safe-area-inset-bottom);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        .bottom-nav button {
+            background: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 12px;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+        .bottom-nav button .icon {
+            font-size: 24px;
+            line-height: 1.2;
+        }
+        .bottom-nav button.active {
+            color: var(--accent);
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.25s ease;
+        }
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        /* ===== БИБЛИОТЕКА ===== */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tabs button {
+            flex-shrink: 0;
+            padding: 8px 18px;
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tabs button.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .quiz-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .quiz-card:active {
+            transform: scale(0.98);
+        }
+        .quiz-card .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .quiz-card .name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .quiz-card .count {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .quiz-card .heart {
+            font-size: 26px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: 0.2s;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .quiz-card .heart.liked {
+            color: var(--red);
+        }
+        .quiz-card .heart:not(.liked) {
+            color: var(--border);
+        }
+
+        /* ===== ДЕТАЛЬНАЯ КАРТОЧКА ===== */
+        .quiz-detail {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .quiz-detail .name {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .quiz-detail .meta {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 4px 0 12px;
+        }
+        .quiz-detail .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+        .quiz-detail .actions .btn {
+            flex: 1;
+            min-width: 80px;
+            font-size: 14px;
+            padding: 10px 16px;
+        }
+        .quiz-detail .track-list {
+            margin-top: 12px;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+        .quiz-detail .track-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 15px;
+        }
+        .quiz-detail .track-item:last-child {
+            border-bottom: none;
+        }
+        .quiz-detail .track-item .title {
+            font-weight: 500;
+        }
+
+        /* ===== ДОБАВЛЕНИЕ ===== */
+        .add-form .form-group {
+            margin-bottom: 16px;
+        }
+        .add-form .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .add-form .file-zone {
+            border: 3px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .add-form .file-zone:hover {
+            border-color: var(--accent);
+            background: rgba(139, 58, 42, 0.05);
+        }
+        .add-form .file-zone input {
+            display: none;
+        }
+        .add-form .file-list {
+            margin-top: 10px;
+        }
+        .add-form .file-list span {
+            display: block;
+            padding: 4px 0;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .add-form .file-list span:last-child {
+            border-bottom: none;
+        }
+        .add-form .track-titles {
+            margin-top: 12px;
+        }
+        .add-form .track-titles .form-group {
+            margin-bottom: 8px;
+        }
+        .add-form .track-titles .form-group label {
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .edit-track-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .edit-track-item .title {
+            flex: 1;
+            font-weight: 500;
+        }
+        .edit-track-item .btn-sm {
+            flex-shrink: 0;
+        }
+
+        /* ===== ПОДГОТОВКА ===== */
+        .prepare-select {
+            margin-bottom: 16px;
+        }
+
+        .player-area {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .player-area audio {
+            width: 100%;
+            border-radius: 30px;
+        }
+        .player-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .player-controls .btn {
+            flex: 1;
+            min-width: 60px;
+        }
+
+        .track-list-prepare {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .track-list-prepare .item {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .track-list-prepare .item:last-child {
+            border-bottom: none;
+        }
+        .track-list-prepare .item .track-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .track-list-prepare .item .track-name {
+            font-weight: 500;
+            flex: 1;
+        }
+        .track-list-prepare .item .note-input {
+            padding: 4px 12px;
+            border: 2px solid var(--border);
+            border-radius: 30px;
+            font-size: 13px;
+            background: var(--bg);
+            color: var(--text);
+            width: 140px;
+        }
+        .track-list-prepare .item .note-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .track-list-prepare .item .timecodes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+            padding-left: 4px;
+        }
+        .track-list-prepare .item .timecodes .tc {
+            background: var(--border);
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-secondary);
+        }
+        .track-list-prepare .item .timecodes .tc:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* ============================================
+           ВИКТОРИНА — КНОПКИ ВЫБОРА СЛОЖНОСТИ
+           ============================================ */
+        .level-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .level-btn {
+            background: var(--bg);
+            border: 3px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+            font-size: inherit;
+            color: var(--text);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .level-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .level-btn.selected {
+            border-color: var(--accent);
+            background: var(--card);
+            box-shadow: 0 0 0 3px rgba(139, 58, 42, 0.2);
+        }
+
+        .level-btn .level-name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .level-btn .level-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .level-btn .level-badge {
+            display: inline-block;
+            background: var(--gold);
+            color: #1a1a2e;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* ===== ОСТАЛЬНЫЕ СТИЛИ ВИКТОРИНЫ ===== */
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+        .settings-row input[type="number"] {
+            width: 70px;
+            padding: 6px 12px;
+            border: 2px solid var(--border);
+            border-radius: 30px;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .toggle {
+            width: 50px;
+            height: 28px;
+            background: var(--border);
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .toggle.active {
+            background: var(--accent);
+        }
+        .toggle .slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle.active .slider {
+            left: 25px;
+        }
+
+        /* ===== ИГРОВОЙ ЭКРАН ===== */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .game-header .question-num {
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .game-header .timer {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .game-header .timer.warning {
+            color: var(--red);
+            animation: pulse 0.5s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .game-player {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .game-player audio {
+            width: 100%;
+            border-radius: 30px;
+        }
+
+        .game-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .game-options button {
+            padding: 14px;
+            border: 3px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--card);
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .game-options button:hover:not(.disabled) {
+            border-color: var(--text-secondary);
+        }
+        .game-options button.correct {
+            border-color: var(--green);
+            background: #d4edda;
+            color: #155724;
+        }
+        .game-options button.wrong {
+            border-color: var(--red);
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .game-options button.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .game-input {
+            width: 100%;
+            padding: 14px;
+            border: 3px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 18px;
+            text-align: center;
+            margin: 12px 0;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .game-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .game-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+        .game-actions .btn {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .game-feedback {
+            text-align: center;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .game-feedback.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+        .game-feedback.wrong {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .game-feedback.hint {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* ===== МОДАЛЬНОЕ ОКНО ===== */
+        .answer-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease;
+        }
+        .answer-modal {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 30px 24px;
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .answer-modal .icon {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .answer-modal .title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .answer-modal .title.correct {
+            color: var(--green);
+        }
+        .answer-modal .title.wrong {
+            color: var(--red);
+        }
+        .answer-modal .sub {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin: 8px 0;
+        }
+        .answer-modal .correct-answer {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 8px 0;
+            color: var(--accent);
+        }
+        .answer-modal .countdown {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 12px 0;
+        }
+        .answer-modal .btn {
+            margin-top: 8px;
+        }
+
+        /* ===== РЕЗУЛЬТАТЫ ===== */
+        .result-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+            border-left: 5px solid var(--accent);
+        }
+        .result-card.high {
+            border-left-color: var(--green);
+        }
+        .result-card .date {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .result-card .info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .result-card .score {
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .result-card .percent {
+            background: var(--border);
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .result-card.high .percent {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .stats-summary {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .stats-summary span {
+            font-size: 14px;
+        }
+        .stats-summary strong {
+            color: var(--accent);
+        }
+
+        /* ===== НАСТРОЙКИ ===== */
+        .settings-group {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .settings-group .title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+        .settings-row .label {
+            font-size: 15px;
+        }
+        .settings-row select,
+        .settings-row input[type="range"] {
+            background: var(--bg);
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 14px;
+        }
+
+        .offline-badge {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--red);
+            color: #fff;
+            text-align: center;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 999;
+            display: none;
+        }
+        .offline-badge.show {
+            display: block;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 12px 12px 80px;
+            }
+            .quiz-detail .actions .btn {
+                min-width: 60px;
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+            .game-options {
+                grid-template-columns: 1fr;
+            }
+            .level-buttons {
+                grid-template-columns: 1fr;
+            }
+            .track-list-prepare .item .note-input {
+                width: 100px;
+            }
+            .track-list-prepare .item .track-row {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== ОФЛАЙН-БЕЙДЖ ===== -->
+    <div class="offline-badge" id="offlineBadge">📴 Офлайн-режим</div>
+
+    <!-- ===== ОПРОСНИК ===== -->
+    <div id="onboarding">
+        <div class="card">
+            <div class="logo">Mu<span>Qwiz</span></div>
+            <div class="sub">🎵 Самоподготовка к музыкальным викторинам</div>
+
+            <div id="onboardingStep1">
+                <div class="form-group">
+                    <label>Как мне к тебе обращаться?</label>
+                    <input type="text" class="input-field" id="userName" placeholder="Введите имя...">
+                </div>
+                <button class="btn btn-primary" id="onboardingNext1">Далее →</button>
+            </div>
+
+            <div id="onboardingStep2" class="hidden">
+                <p style="margin-bottom:16px;font-size:16px;">Приятно познакомиться, <strong id="greetingName"></strong>!</p>
+                <div class="form-group">
+                    <label>Выбери заведение, где ты обучаешься:</label>
+                    <select class="select-field" id="userInstitute">
+                        <option value="school">🎵 Музыкальная школа</option>
+                        <option value="college" selected>🎓 Колледж</option>
+                        <option value="university">🏛️ Высшее учебное заведение</option>
+                        <option value="self">🎧 Я самоучка :)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="onboardingFinish">🚀 Начать!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== -->
+    <div id="app" class="hidden">
+        <div class="app-container">
+
+            <!-- ===== БИБЛИОТЕКА ===== -->
+            <div class="page active" id="page-library">
+                <div class="page-title">📚 Библиотека</div>
+
+                <div class="tabs" id="libraryTabs">
+                    <button class="active" data-tab="composers">Композиторы</button>
+                    <button data-tab="epochs">Эпохи</button>
+                    <button data-tab="genres">Циклы</button>
+                    <button data-tab="favorites">❤️ Избранное</button>
+                    <button data-tab="my">📂 Мои</button>
+                </div>
+
+                <div id="libraryContent"></div>
+
+                <button class="btn btn-primary" id="showAddForm" style="margin-top:8px;">➕ Добавить викторину</button>
+
+                <div id="addForm" class="add-form hidden" style="margin-top:16px;">
+                    <div class="card">
+                        <div class="form-group">
+                            <label>Название викторины</label>
+                            <input type="text" class="input-field" id="newQuizName" placeholder="Например: Бах. Органные произведения">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Способ добавления</label>
+                            <select class="select-field" id="addMethod">
+                                <option value="files">📁 Загрузить файлы с устройства</option>
+                                <option value="link">🔗 Загрузить по ссылке (JSON)</option>
+                                <option value="gdrive">☁️ Загрузить с Google Диска</option>
+                            </select>
+                        </div>
+
+                        <div id="addMethodFiles">
+                            <div class="file-zone" id="fileZone">
+                                📁 Нажми, чтобы выбрать MP3 файлы<br>
+                                <small>(можно выбрать несколько)</small>
+                                <input type="file" id="fileInput" accept=".mp3" multiple>
+                            </div>
+                            <div id="fileList" class="file-list"></div>
+                            <div id="trackTitles" class="track-titles"></div>
+                        </div>
+
+                        <div id="addMethodLink" class="hidden">
+                            <div class="form-group">
+                                <label>Ссылка на JSON-файл с викториной</label>
+                                <input type="url" class="input-field" id="quizLink" placeholder="https://example.com/quiz.json">
+                                <small style="color:var(--text-secondary);font-size:13px;">JSON должен содержать массив tracks с полями "title" и "file"</small>
+                            </div>
+                        </div>
+
+                        <!-- ===== GOOGLE ДИСК ===== -->
+                        <div id="addMethodGdrive" class="hidden">
+                            <div class="form-group">
+                                <label>Ссылка на публичную папку Google Диска</label>
+                                <input type="url" class="input-field" id="gdriveLink" placeholder="https://drive.google.com/drive/folders/...">
+                                <small style="color:var(--text-secondary);font-size:13px;">
+                                    📌 Папка должна быть общедоступной (доступ по ссылке)<br>
+                                    🎵 Поддерживаются только MP3 файлы
+                                </small>
+                            </div>
+                            <button class="btn btn-google" id="scanGdriveBtn">
+                                🔍 Сканировать папку
+                            </button>
+                            <div id="gdriveProgress" class="hidden" style="margin-top:12px;text-align:center;">
+                                <div class="loader"></div>
+                                <span style="display:block;margin-top:8px;font-size:14px;color:var(--text-secondary);">Ищем MP3 файлы...</span>
+                            </div>
+                            <div id="gdriveResults" class="hidden" style="margin-top:12px;border-top:2px solid var(--border);padding-top:12px;">
+                                <div style="font-weight:600;margin-bottom:8px;">📄 Найдено файлов: <span id="gdriveFileCount">0</span></div>
+                                <div id="gdriveFileList" style="max-height:200px;overflow-y:auto;font-size:14px;background:var(--bg);border-radius:8px;padding:8px 12px;"></div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="saveQuizBtn">💾 Сохранить викторину</button>
+                        <button class="btn btn-secondary" id="cancelAddBtn" style="margin-top:8px;">Отмена</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ПОДГОТОВКА ===== -->
+            <div class="page" id="page-prepare">
+                <div class="page-title">🎧 Подготовка</div>
+
+                <div class="prepare-select">
+                    <select class="select-field" id="prepareSelect">
+                        <option value="">— выбери викторину —</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-gold" id="gotoQuizBtn" style="margin-bottom:16px;">🎯 Перейти к викторине</button>
+
+                <div class="player-area">
+                    <audio id="playerAudio" controls></audio>
+                    <div class="player-controls">
+                        <button class="btn btn-sm btn-secondary" id="playPrev">⏮</button>
+                        <button class="btn btn-sm btn-secondary" id="playNext">⏭</button>
+                        <button class="btn btn-sm btn-secondary" id="playShuffle">🔀 Перемешать</button>
+                    </div>
+                </div>
+
+                <div id="trackListPrepare" class="track-list-prepare">
+                    <div style="text-align:center;color:var(--text-secondary);padding:20px;">Выбери викторину</div>
+                </div>
+            </div>
+
+            <!-- ===== ВИКТОРИНА ===== -->
+            <div class="page" id="page-quiz">
+                <div class="page-title">🎯 Викторина</div>
+
+                <div id="quizSetup">
+                    <div class="card">
+
+                        <!-- Выбор викторины -->
+                        <div class="form-group">
+                            <label>Выбери викторину</label>
+                            <select class="select-field" id="quizSelect">
+                                <option value="">— выбери викторину —</option>
+                            </select>
+                        </div>
+
+                        <!-- Количество вопросов -->
+                        <div class="settings-row">
+                            <span>Количество вопросов</span>
+                            <input type="number" id="quizCount" value="20" min="5" max="100">
+                        </div>
+
+                        <!-- Автоматический переход -->
+                        <div class="settings-row">
+                            <span>Автоматический переход</span>
+                            <div class="toggle active" id="autoToggle">
+                                <div class="slider"></div>
+                            </div>
+                        </div>
+
+                        <!-- Показать ответ сразу -->
+                        <div class="settings-row">
+                            <span>Показать ответ сразу</span>
+                            <div class="toggle active" id="showAnswerToggle">
+                                <div class="slider"></div>
+                            </div>
+                        </div>
+
+                        <!-- Уровень сложности — КНОПКИ -->
+                        <label style="font-weight:600;display:block;margin:16px 0 10px;">Выберите уровень сложности:</label>
+                        <div class="level-buttons" id="levelButtons">
+                            <button class="level-btn selected" data-level="easy">
+                                <span class="level-name">🟢 Лёгкий</span>
+                                <span class="level-desc">С начала<br>4 варианта<br>⏱ 1:30<br>💡 3 подсказки</span>
+                                <span class="level-badge">Рекомендуется</span>
+                            </button>
+                            <button class="level-btn" data-level="medium">
+                                <span class="level-name">🟡 Средний</span>
+                                <span class="level-desc">С начала<br>Вписать название<br>⏱ 1:00<br>💡 3 подсказки</span>
+                            </button>
+                            <button class="level-btn" data-level="hard">
+                                <span class="level-name">🔴 Сложный</span>
+                                <span class="level-desc">С середины<br>Вписать название<br>⏱ 0:45<br>💡 1 подсказка</span>
+                            </button>
+                        </div>
+
+                        <button class="btn btn-primary" id="startQuizBtn">▶ Начать викторину</button>
+
+                    </div>
+                </div>
+
+                <div id="gameScreen" class="hidden">
+                    <div class="game-header">
+                        <span class="question-num" id="questionNum">Вопрос 1 из 20</span>
+                        <span class="timer" id="timerDisplay">1:30</span>
+                    </div>
+
+                    <div class="game-player">
+                        <audio id="gameAudio" controls></audio>
+                        <div style="display:flex;gap:10px;margin-top:10px;">
+                            <button class="btn btn-sm btn-secondary" id="gamePlay">▶ Воспроизвести</button>
+                            <button class="btn btn-sm btn-secondary" id="gamePause">⏸ Пауза</button>
+                        </div>
+                    </div>
+
+                    <div id="gameQuestion"></div>
+
+                    <div class="game-actions">
+                        <button class="btn btn-gold" id="hintBtn">💡 Подсказка (3)</button>
+                        <button class="btn btn-primary" id="submitBtn">✅ Ответить</button>
+                    </div>
+
+                    <div id="gameFeedback"></div>
+                </div>
+
+                <div id="finalScreen" class="hidden">
+                    <div id="finalContent"></div>
+                </div>
+            </div>
+
+            <!-- ===== РЕЗУЛЬТАТЫ ===== -->
+            <div class="page" id="page-results">
+                <div class="page-title">📊 Результаты</div>
+                <div id="resultsList"></div>
+                <button class="btn btn-secondary" id="clearResultsBtn" style="margin-top:8px;">🗑️ Очистить историю</button>
+            </div>
+
+            <!-- ===== НАСТРОЙКИ ===== -->
+            <div class="page" id="page-settings">
+                <div class="page-title">⚙️ Настройки</div>
+
+                <div class="settings-group">
+                    <div class="title">👤 Профиль</div>
+                    <div class="settings-row">
+                        <span class="label">Имя</span>
+                        <span id="settingsName" style="font-weight:600;"></span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="label">Учебное заведение</span>
+                        <span id="settingsInstitute" style="font-weight:600;"></span>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" id="editProfileBtn" style="margin-top:8px;width:auto;">✏️ Изменить профиль</button>
+                </div>
+
+                <div class="settings-group">
+                    <div class="title">🎨 Внешний вид</div>
+                    <div class="settings-row">
+                        <span class="label">Тема</span>
+                        <select id="themeSelect">
+                            <option value="light">☀️ Светлая</option>
+                            <option value="dark">🌙 Тёмная</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="title">🔊 Звук</div>
+                    <div class="settings-row">
+                        <span class="label">Звук ответа</span>
+                        <div class="toggle active" id="soundToggle">
+                            <div class="slider"></div>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <span class="label">Громкость</span>
+                        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.8">
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="title">📦 Данные</div>
+                    <div class="settings-row">
+                        <span class="label">Кэш (офлайн-данные)</span>
+                        <button class="btn btn-sm btn-secondary" id="clearCacheBtn">🗑️ Очистить</button>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="title">ℹ️ О приложении</div>
+                    <div class="settings-row">
+                        <span class="label">Версия</span>
+                        <span>1.0.0</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="label">MuQwiz 🎵</span>
+                        <span>Для музыкальных викторин</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== НИЖНЯЯ ПАНЕЛЬ ===== -->
+        <div class="bottom-nav">
+            <button class="active" data-page="library">
+                <span class="icon">📚</span>
+                Библиотека
+            </button>
+            <button data-page="prepare">
+                <span class="icon">🎧</span>
+                Подготовка
+            </button>
+            <button data-page="quiz">
+                <span class="icon">🎯</span>
+                Викторина
+            </button>
+            <button data-page="results">
+                <span class="icon">📊</span>
+                Результаты
+            </button>
+            <button data-page="settings">
+                <span class="icon">⚙️</span>
+                Настройки
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // ===== ДАННЫЕ =====
+        // ============================================
+        const APP = {
+            user: { name: '', institute: 'college' },
+            library: [],
+            results: [],
+            notes: {},
+            timecodes: {},
+            favorites: [],
+            currentQuizId: null,
+            currentTrackIndex: 0,
+            shuffleMode: false,
+            shuffledList: [],
+            settings: {
+                theme: 'light',
+                sound: true,
+                volume: 0.8
+            }
+        };
+
+        // ===== СОСТОЯНИЕ ВИКТОРИНЫ =====
+        const Q = {
+            quizId: null,
+            level: 'easy',
+            questions: [],
+            currentIndex: 0,
+            correctCount: 0,
+            hintCount: 3,
+            totalQuestions: 0,
+            autoNext: true,
+            showAnswer: true,
+            answered: false,
+            timer: null,
+            timeLeft: 90,
+            wrongTitles: [],
+            isFinished: false,
+            timeLimit: 90,
+            fromStart: true,
+            audioReady: false,
+            waitingForAudio: false,
+            history: [],
+            pendingNext: false
+        };
+
+        // ============================================
+        // ===== ЗАГРУЗКА / СОХРАНЕНИЕ =====
+        // ============================================
+        function saveAppData() {
+            try {
+                const data = {
+                    user: APP.user,
+                    library: APP.library,
+                    results: APP.results,
+                    notes: APP.notes,
+                    timecodes: APP.timecodes,
+                    favorites: APP.favorites,
+                    settings: APP.settings
+                };
+                localStorage.setItem('muqwiz_data', JSON.stringify(data));
+            } catch (e) { console.warn('Save error', e); }
+        }
+
+        function loadAppData() {
+            try {
+                const raw = localStorage.getItem('muqwiz_data');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    APP.user = data.user || APP.user;
+                    APP.library = data.library || [];
+                    APP.results = data.results || [];
+                    APP.notes = data.notes || {};
+                    APP.timecodes = data.timecodes || {};
+                    APP.favorites = data.favorites || [];
+                    APP.settings = data.settings || APP.settings;
+                }
+            } catch (e) { console.warn('Load error', e); }
+
+            if (APP.library.length === 0) {
+                APP.library.push({
+                    id: 'demo_bach',
+                    name: 'Бах. Органные произведения',
+                    section: 'composers',
+                    tracks: [
+                        { file: 'bach_toccata.mp3', title: 'Токката и фуга ре минор' },
+                        { file: 'bach_fugue_gminor.mp3', title: 'Фуга соль минор' }
+                    ]
+                });
+                APP.library.push({
+                    id: 'demo_mozart',
+                    name: 'Моцарт. Симфонии',
+                    section: 'composers',
+                    tracks: [
+                        { file: 'mozart_40.mp3', title: 'Симфония №40' },
+                        { file: 'mozart_41.mp3', title: 'Симфония №41 "Юпитер"' }
+                    ]
+                });
+                saveAppData();
+            }
+        }
+
+        function genId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        function getAudioUrl(file) {
+            if (!file) return '';
+            if (file.startsWith('http://') || file.startsWith('https://')) return file;
+            return 'music/' + file;
+        }
+
+        // ============================================
+        // ===== ОПРОСНИК =====
+        // ============================================
+        function checkOnboarding() {
+            if (APP.user.name) {
+                document.getElementById('onboarding').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                applyTheme();
+                renderAll();
+                return;
+            }
+            document.getElementById('onboarding').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+        }
+
+        document.getElementById('onboardingNext1').addEventListener('click', function() {
+            const name = document.getElementById('userName').value.trim();
+            if (!name) { alert('Пожалуйста, введите имя'); return; }
+            APP.user.name = name;
+            document.getElementById('greetingName').textContent = name;
+            document.getElementById('onboardingStep1').classList.add('hidden');
+            document.getElementById('onboardingStep2').classList.remove('hidden');
+        });
+
+        document.getElementById('onboardingFinish').addEventListener('click', function() {
+            APP.user.institute = document.getElementById('userInstitute').value;
+            saveAppData();
+            document.getElementById('onboarding').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            applyTheme();
+            renderAll();
+        });
+
+        // ============================================
+        // ===== ТЕМА =====
+        // ============================================
+        function applyTheme() {
+            const theme = APP.settings.theme || 'light';
+            document.body.classList.toggle('dark', theme === 'dark');
+            document.getElementById('themeSelect').value = theme;
+        }
+
+        document.getElementById('themeSelect').addEventListener('change', function() {
+            APP.settings.theme = this.value;
+            saveAppData();
+            applyTheme();
+        });
+
+        // ============================================
+        // ===== НАВИГАЦИЯ =====
+        // ============================================
+        document.querySelectorAll('.bottom-nav button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const page = this.dataset.page;
+                document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+
+                if (page === 'library') renderLibrary();
+                if (page === 'prepare') { renderPrepareSelect();
+                    loadPrepare(APP.currentQuizId); }
+                if (page === 'quiz') renderQuizSelect();
+                if (page === 'results') renderResults();
+                if (page === 'settings') renderSettings();
+            });
+        });
+
+        // ============================================
+        // ===== БИБЛИОТЕКА =====
+        // ============================================
+        let currentTab = 'composers';
+
+        function renderLibrary() {
+            const container = document.getElementById('libraryContent');
+            let filtered = [];
+
+            if (currentTab === 'favorites') {
+                filtered = APP.library.filter(q => APP.favorites.includes(q.id));
+            } else if (currentTab === 'my') {
+                filtered = APP.library.filter(q => q.section === 'my');
+            } else {
+                filtered = APP.library.filter(q => q.section === currentTab);
+            }
+
+            filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+            if (filtered.length === 0) {
+                container.innerHTML =
+                    `<div class="card" style="text-align:center;padding:30px;color:var(--text-secondary);">📭 В этом разделе пока нет викторин<br><small>Нажми «Добавить викторину»</small></div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(q => `
+                        <div class="quiz-card" data-id="${q.id}">
+                            <div class="top">
+                                <div>
+                                    <div class="name">${q.name}</div>
+                                    <div class="count">${q.tracks.length} произведений</div>
+                                </div>
+                                <button class="heart ${APP.favorites.includes(q.id) ? 'liked' : ''}" data-id="${q.id}">
+                                    ${APP.favorites.includes(q.id) ? '❤️' : '🤍'}
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+
+            container.querySelectorAll('.quiz-card').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    if (e.target.closest('.heart')) return;
+                    showQuizDetail(this.dataset.id);
+                });
+            });
+
+            container.querySelectorAll('.heart').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = this.dataset.id;
+                    const idx = APP.favorites.indexOf(id);
+                    if (idx > -1) APP.favorites.splice(idx, 1);
+                    else APP.favorites.push(id);
+                    saveAppData();
+                    renderLibrary();
+                });
+            });
+        }
+
+        document.querySelectorAll('#libraryTabs button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('#libraryTabs button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentTab = this.dataset.tab;
+                renderLibrary();
+            });
+        });
+
+        // ============================================
+        // ===== ДЕТАЛИ ВИКТОРИНЫ =====
+        // ============================================
+        function showQuizDetail(quizId) {
+            const quiz = APP.library.find(q => q.id === quizId);
+            if (!quiz) return;
+
+            const container = document.getElementById('libraryContent');
+            const isFav = APP.favorites.includes(quizId);
+            const isMy = quiz.section === 'my';
+
+            container.innerHTML = `
+                        <div class="quiz-detail">
+                            <div class="name">${quiz.name}</div>
+                            <div class="meta">${quiz.tracks.length} произведений ${isMy ? '📂 Моя' : ''}</div>
+
+                            <div class="actions">
+                                <button class="btn btn-sm btn-gold" id="detailFavorite">${isFav ? '❤️' : '🤍'} Избранное</button>
+                                <button class="btn btn-sm btn-primary" id="detailQuiz">🎯 Викторина</button>
+                                <button class="btn btn-sm btn-secondary" id="detailEdit">✏️ Редактировать</button>
+                                <button class="btn btn-sm btn-danger" id="detailDelete">🗑️ Удалить</button>
+                            </div>
+
+                            <div class="track-list">
+                                ${quiz.tracks.map((t, i) => `
+                                    <div class="track-item">
+                                        <span class="title">${i+1}. ${t.title}</span>
+                                        <span>${t.file ? '🎵' : ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <button class="btn btn-secondary" id="detailBack" style="margin-top:12px;">← Назад</button>
+                        </div>
+                    `;
+
+            document.getElementById('detailBack').addEventListener('click', renderLibrary);
+
+            document.getElementById('detailFavorite').addEventListener('click', function() {
+                const idx = APP.favorites.indexOf(quizId);
+                if (idx > -1) APP.favorites.splice(idx, 1);
+                else APP.favorites.push(quizId);
+                saveAppData();
+                showQuizDetail(quizId);
+            });
+
+            document.getElementById('detailQuiz').addEventListener('click', function() {
+                document.querySelector('[data-page="quiz"]').click();
+                document.getElementById('quizSelect').value = quizId;
+                document.getElementById('quizSelect').dispatchEvent(new Event('change'));
+            });
+
+            document.getElementById('detailEdit').addEventListener('click', function() {
+                openEditor(quizId);
+            });
+
+            document.getElementById('detailDelete').addEventListener('click', function() {
+                if (!confirm(`Удалить викторину "${quiz.name}"?`)) return;
+                APP.library = APP.library.filter(q => q.id !== quizId);
+                APP.favorites = APP.favorites.filter(id => id !== quizId);
+                saveAppData();
+                renderLibrary();
+            });
+        }
+
+        // ============================================
+        // ===== РЕДАКТОР ВИКТОРИНЫ =====
+        // ============================================
+        let editingQuizId = null;
+
+        function openEditor(quizId) {
+            const quiz = APP.library.find(q => q.id === quizId);
+            if (!quiz) return;
+
+            editingQuizId = quizId;
+            const isMy = quiz.section === 'my';
+
+            const container = document.getElementById('libraryContent');
+
+            container.innerHTML = `
+                        <div class="quiz-detail">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                                <span style="font-size:20px;font-weight:700;">✏️ Редактировать</span>
+                                <button class="btn btn-sm btn-secondary" id="editorCancel">✖ Закрыть</button>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Название викторины</label>
+                                <input type="text" class="input-field" id="editorName" value="${quiz.name}">
+                            </div>
+
+                            <div style="margin:12px 0;font-weight:600;">Треки (${quiz.tracks.length})</div>
+                            <div id="editorTrackList">
+                                ${quiz.tracks.map((t, i) => `
+                                    <div class="edit-track-item" data-index="${i}">
+                                        <span class="title">${i+1}. ${t.title}</span>
+                                        <button class="btn btn-sm btn-danger remove-track-btn" data-index="${i}">✖</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <div style="margin-top:16px;border-top:2px solid var(--border);padding-top:16px;">
+                                <div class="form-group">
+                                    <label>Добавить новый трек</label>
+                                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                        <input type="text" class="input-field" id="newTrackTitle" placeholder="Название..." style="flex:1;min-width:120px;">
+                                        <input type="text" class="input-field" id="newTrackFile" placeholder="Ссылка или имя файла..." style="flex:2;min-width:150px;">
+                                        <button class="btn btn-sm btn-primary" id="addTrackBtn" style="width:auto;">➕ Добавить</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex;gap:12px;margin-top:16px;">
+                                <button class="btn btn-primary" id="editorSave">💾 Сохранить</button>
+                                <button class="btn btn-secondary" id="editorCancel2">Отмена</button>
+                            </div>
+                        </div>
+                    `;
+
+            const closeEditor = () => {
+                editingQuizId = null;
+                showQuizDetail(quizId);
+            };
+
+            document.getElementById('editorCancel').addEventListener('click', closeEditor);
+            document.getElementById('editorCancel2').addEventListener('click', closeEditor);
+
+            document.querySelectorAll('.remove-track-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    if (confirm(`Удалить трек "${quiz.tracks[idx].title}"?`)) {
+                        quiz.tracks.splice(idx, 1);
+                        openEditor(quizId);
+                    }
+                });
+            });
+
+            document.getElementById('addTrackBtn').addEventListener('click', function() {
+                const title = document.getElementById('newTrackTitle').value.trim();
+                const file = document.getElementById('newTrackFile').value.trim();
+                if (!title) { alert('Введите название трека'); return; }
+                if (!file) { alert('Введите ссылку или имя файла'); return; }
+                quiz.tracks.push({ title, file });
+                saveAppData();
+                openEditor(quizId);
+            });
+
+            document.getElementById('editorSave').addEventListener('click', function() {
+                const newName = document.getElementById('editorName').value.trim();
+                if (!newName) { alert('Введите название викторины'); return; }
+
+                let targetQuiz = quiz;
+                if (!isMy) {
+                    const copy = JSON.parse(JSON.stringify(quiz));
+                    copy.id = genId();
+                    copy.section = 'my';
+                    copy.name = newName;
+                    APP.library.push(copy);
+                    saveAppData();
+                    alert(`✅ Викторина скопирована в "Мои" с новым названием`);
+                    closeEditor();
+                    renderLibrary();
+                    return;
+                }
+
+                quiz.name = newName;
+                saveAppData();
+                alert('✅ Викторина сохранена');
+                closeEditor();
+                renderLibrary();
+            });
+        }
+
+        // ============================================
+        // ===== ДОБАВЛЕНИЕ ВИКТОРИНЫ =====
+        // ============================================
+        document.getElementById('showAddForm').addEventListener('click', function() {
+            const form = document.getElementById('addForm');
+            form.classList.toggle('hidden');
+            this.textContent = form.classList.contains('hidden') ? '➕ Добавить викторину' : '✖ Закрыть';
+        });
+
+        document.getElementById('cancelAddBtn').addEventListener('click', function() {
+            document.getElementById('addForm').classList.add('hidden');
+            document.getElementById('showAddForm').textContent = '➕ Добавить викторину';
+            resetAddForm();
+        });
+
+        function resetAddForm() {
+            document.getElementById('newQuizName').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('trackTitles').innerHTML = '';
+            document.getElementById('quizLink').value = '';
+            document.getElementById('gdriveLink').value = '';
+            document.getElementById('gdriveResults').classList.add('hidden');
+            document.getElementById('gdriveProgress').classList.add('hidden');
+            document.getElementById('gdriveFileList').innerHTML = '';
+            document.getElementById('gdriveFileCount').textContent = '0';
+            window.selectedFiles = [];
+            window.gdriveTracks = [];
+        }
+
+        // Переключение методов добавления
+        document.getElementById('addMethod').addEventListener('change', function() {
+            const val = this.value;
+            document.getElementById('addMethodFiles').classList.toggle('hidden', val !== 'files');
+            document.getElementById('addMethodLink').classList.toggle('hidden', val !== 'link');
+            document.getElementById('addMethodGdrive').classList.toggle('hidden', val !== 'gdrive');
+        });
+
+        // ===== ЗАГРУЗКА ФАЙЛОВ =====
+        window.selectedFiles = [];
+        document.getElementById('fileZone').addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function() {
+            const files = Array.from(this.files);
+            window.selectedFiles = files;
+
+            const container = document.getElementById('fileList');
+            if (files.length === 0) {
+                container.innerHTML = '';
+                document.getElementById('trackTitles').innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = files.map(f => `<span>📄 ${f.name}</span>`).join('');
+
+            let html = '';
+            files.forEach((f, i) => {
+                const def = f.name.replace(/\.mp3$/i, '').replace(/[_-]/g, ' ');
+                html += `
+                            <div class="form-group">
+                                <label>Название для "${f.name}"</label>
+                                <input type="text" class="input-field track-title-input" data-index="${i}" value="${def}">
+                            </div>
+                        `;
+            });
+            document.getElementById('trackTitles').innerHTML = html;
+        });
+
+        // ============================================
+        // ===== НОВЫЙ МЕТОД: GOOGLE ДИСК (через bundle.js) =====
+        // ============================================
+        window.gdriveTracks = [];
+
+        document.getElementById('scanGdriveBtn').addEventListener('click', function() {
+            const link = document.getElementById('gdriveLink').value.trim();
+            if (!link) {
+                alert('Введите ссылку на публичную папку Google Диска');
+                return;
+            }
+
+            // Проверяем, что функция из bundle.js доступна
+            if (typeof scanGoogleDrive !== 'function') {
+                alert('❌ Функция scanGoogleDrive не загружена. Проверьте сборку.');
+                console.error('scanGoogleDrive не определён. Запустите npx webpack');
+                return;
+            }
+
+            // Показываем прогресс
+            document.getElementById('gdriveProgress').classList.remove('hidden');
+            document.getElementById('gdriveResults').classList.add('hidden');
+            document.getElementById('scanGdriveBtn').disabled = true;
+
+            console.log('🔍 Начинаем сканирование папки:', link);
+
+            // Используем функцию из bundle.js
+            scanGoogleDrive(link)
+                .then(mp3Files => {
+                    console.log('🎵 MP3 файлов:', mp3Files.length);
+
+                    // Показываем результаты
+                    document.getElementById('gdriveProgress').classList.add('hidden');
+                    document.getElementById('gdriveResults').classList.remove('hidden');
+                    document.getElementById('gdriveFileCount').textContent = mp3Files.length;
+                    document.getElementById('scanGdriveBtn').disabled = false;
+
+                    if (mp3Files.length === 0) {
+                        document.getElementById('gdriveFileList').innerHTML =
+                            '<div style="color:var(--text-secondary);padding:10px;">❌ MP3 файлы не найдены в этой папке</div>';
+                        window.gdriveTracks = [];
+                        return;
+                    }
+
+                    // Сохраняем треки
+                    window.gdriveTracks = mp3Files.map(f => ({
+                        file: f.downloadUrl || f.url || `https://drive.google.com/uc?id=${f.id}&export=download`,
+                        title: f.name.replace(/\.mp3$/i, '').replace(/[_-]/g, ' ')
+                    }));
+
+                    // Показываем список
+                    document.getElementById('gdriveFileList').innerHTML = mp3Files.map((f, i) => `
+                                <div style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                                    <span>${i+1}. ${f.name}</span>
+                                    <span style="color:var(--text-secondary);font-size:12px;">✅</span>
+                                </div>
+                            `).join('');
+
+                    alert(`✅ Найдено ${mp3Files.length} MP3 файлов! Нажмите "Сохранить викторину" для добавления.`);
+                })
+                .catch(err => {
+                    console.error('Ошибка сканирования:', err);
+                    document.getElementById('gdriveProgress').classList.add('hidden');
+                    document.getElementById('scanGdriveBtn').disabled = false;
+                    alert('❌ Ошибка при сканировании папки.\n\n' +
+                        'Убедитесь, что:\n' +
+                        '1. Папка общедоступна (доступ по ссылке)\n' +
+                        '2. Ссылка правильная\n\n' +
+                        'Ошибка: ' + (err.message || 'Неизвестная ошибка'));
+                });
+        });
+
+        // ===== СОХРАНЕНИЕ ВИКТОРИНЫ =====
+        document.getElementById('saveQuizBtn').addEventListener('click', function() {
+            const name = document.getElementById('newQuizName').value.trim();
+            const method = document.getElementById('addMethod').value;
+
+            if (!name) { alert('Введите название викторины'); return; }
+
+            let tracks = [];
+
+            if (method === 'files') {
+                const files = window.selectedFiles || [];
+                if (files.length === 0) { alert('Выберите MP3 файлы'); return; }
+
+                const inputs = document.querySelectorAll('.track-title-input');
+                const titles = Array.from(inputs).map(inp => inp.value.trim() || 'Без названия');
+
+                tracks = files.map((f, i) => ({
+                    file: f.name,
+                    title: titles[i] || f.name.replace(/\.mp3$/i, '')
+                }));
+
+            } else if (method === 'link') {
+                const link = document.getElementById('quizLink').value.trim();
+                if (!link) { alert('Введите ссылку на JSON'); return; }
+
+                fetch(link)
+                    .then(res => {
+                        if (!res.ok) throw new Error('Ошибка загрузки');
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data.tracks || !Array.isArray(data.tracks)) {
+                            throw new Error('Неверный формат JSON: нужен массив "tracks"');
+                        }
+                        tracks = data.tracks.map(t => ({
+                            file: t.file || '',
+                            title: t.title || 'Без названия'
+                        }));
+                        saveQuiz(name, tracks);
+                    })
+                    .catch(err => {
+                        alert('❌ Ошибка загрузки JSON: ' + err.message);
+                    });
+                return;
+
+            } else if (method === 'gdrive') {
+                const gdriveTracks = window.gdriveTracks || [];
+                if (gdriveTracks.length === 0) {
+                    alert('Сначала отсканируйте папку Google Диска');
+                    return;
+                }
+                tracks = gdriveTracks;
+            }
+
+            saveQuiz(name, tracks);
+        });
+
+        function saveQuiz(name, tracks) {
+            const validTracks = tracks.filter(t => t.file && t.file.trim() !== '');
+            if (validTracks.length === 0) {
+                alert('❌ Нет валидных треков для сохранения');
+                return;
+            }
+
+            const newQuiz = {
+                id: genId(),
+                name: name,
+                section: 'my',
+                tracks: validTracks
+            };
+
+            APP.library.push(newQuiz);
+            saveAppData();
+            alert(`✅ Викторина "${name}" сохранена! (${validTracks.length} произведений)`);
+
+            resetAddForm();
+            document.getElementById('addForm').classList.add('hidden');
+            document.getElementById('showAddForm').textContent = '➕ Добавить викторину';
+            renderLibrary();
+        }
+
+        // ============================================
+        // ===== ОСТАЛЬНЫЕ ФУНКЦИИ (ПОДГОТОВКА, ВИКТОРИНА, РЕЗУЛЬТАТЫ) =====
+        // ============================================
+
+        // ===== ПОДГОТОВКА =====
+        let prepareQuizId = null;
+        let prepareTrackIndex = 0;
+        let prepareShuffle = false;
+        let prepareShuffled = [];
+
+        function renderPrepareSelect() {
+            const select = document.getElementById('prepareSelect');
+            const val = select.value;
+            select.innerHTML = '<option value="">— выбери викторину —</option>';
+            APP.library.forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q.id;
+                opt.textContent = q.name + ` (${q.tracks.length} шт.)`;
+                select.appendChild(opt);
+            });
+            if (val && APP.library.some(q => q.id === val)) select.value = val;
+        }
+
+        document.getElementById('prepareSelect').addEventListener('change', function() {
+            if (this.value) {
+                prepareQuizId = this.value;
+                loadPrepare(this.value);
+            }
+        });
+
+        function loadPrepare(quizId) {
+            const quiz = APP.library.find(q => q.id === quizId);
+            if (!quiz) return;
+
+            prepareQuizId = quizId;
+            prepareTrackIndex = 0;
+            prepareShuffle = false;
+            prepareShuffled = [];
+
+            renderPrepareTracks(quiz);
+            playPrepareTrack(quiz, 0);
+            document.getElementById('gotoQuizBtn').dataset.quizId = quizId;
+        }
+
+        function renderPrepareTracks(quiz) {
+            const container = document.getElementById('trackListPrepare');
+            const tracks = quiz.tracks;
+
+            if (!tracks || tracks.length === 0) {
+                container.innerHTML =
+                    '<div style="text-align:center;color:var(--text-secondary);padding:20px;">Нет треков</div>';
+                return;
+            }
+
+            const timecodes = APP.timecodes[quiz.id] || {};
+
+            container.innerHTML = tracks.map((t, i) => {
+                const noteKey = quiz.id + '_' + i;
+                const note = APP.notes[noteKey] || '';
+                const tcs = timecodes[i] || [];
+
+                return `
+                            <div class="item" data-index="${i}">
+                                <div class="track-row">
+                                    <span class="track-name">${i+1}. ${t.title}</span>
+                                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                        <button class="btn btn-sm btn-secondary add-timecode-btn" data-index="${i}" style="width:auto;padding:4px 10px;font-size:12px;">📌 +</button>
+                                        <input type="text" class="note-input" data-key="${noteKey}" placeholder="Заметка..." value="${note}" style="width:120px;">
+                                    </div>
+                                </div>
+                                ${tcs.length > 0 ? `
+                                    <div class="timecodes">
+                                        ${tcs.map(tc => `
+                                            <span class="tc" data-time="${tc}">⏱ ${formatTime(tc)}</span>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+            }).join('');
+
+            container.querySelectorAll('.note-input').forEach(inp => {
+                inp.addEventListener('change', function() {
+                    APP.notes[this.dataset.key] = this.value;
+                    saveAppData();
+                });
+            });
+
+            container.querySelectorAll('.add-timecode-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    const audio = document.getElementById('playerAudio');
+                    if (!audio.src || audio.paused) {
+                        alert('Сначала запустите воспроизведение трека');
+                        return;
+                    }
+                    const time = audio.currentTime;
+                    if (!APP.timecodes[quiz.id]) APP.timecodes[quiz.id] = {};
+                    if (!APP.timecodes[quiz.id][idx]) APP.timecodes[quiz.id][idx] = [];
+                    APP.timecodes[quiz.id][idx].push(time);
+                    APP.timecodes[quiz.id][idx].sort((a, b) => a - b);
+                    saveAppData();
+                    renderPrepareTracks(quiz);
+                });
+            });
+
+            container.querySelectorAll('.tc').forEach(el => {
+                el.addEventListener('click', function() {
+                    const time = parseFloat(this.dataset.time);
+                    const audio = document.getElementById('playerAudio');
+                    audio.currentTime = time;
+                    audio.play().catch(() => {});
+                });
+            });
+
+            container.querySelectorAll('.item').forEach((el, i) => {
+                el.style.background = (i === prepareTrackIndex) ? 'var(--border)' : 'transparent';
+                el.style.borderRadius = '8px';
+                el.style.padding = '8px 10px';
+            });
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function playPrepareTrack(quiz, index) {
+            const tracks = quiz.tracks;
+            if (!tracks || tracks.length === 0) return;
+
+            if (prepareShuffle) {
+                if (prepareShuffled.length === 0) {
+                    prepareShuffled = tracks.map((_, i) => i);
+                    for (let i = prepareShuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [prepareShuffled[i], prepareShuffled[j]] = [prepareShuffled[j], prepareShuffled[i]];
+                    }
+                }
+                prepareTrackIndex = prepareShuffled[index % prepareShuffled.length];
+            } else {
+                prepareTrackIndex = index % tracks.length;
+            }
+
+            const track = tracks[prepareTrackIndex];
+            const audio = document.getElementById('playerAudio');
+            audio.src = getAudioUrl(track.file);
+            audio.load();
+            audio.play().catch(() => {});
+
+            renderPrepareTracks(quiz);
+        }
+
+        document.getElementById('playPrev').addEventListener('click', function() {
+            const quiz = APP.library.find(q => q.id === prepareQuizId);
+            if (!quiz) return;
+            const idx = prepareShuffle ? 0 : prepareTrackIndex - 1;
+            if (idx < 0) return;
+            playPrepareTrack(quiz, idx);
+        });
+
+        document.getElementById('playNext').addEventListener('click', function() {
+            const quiz = APP.library.find(q => q.id === prepareQuizId);
+            if (!quiz) return;
+            const idx = prepareShuffle ? 1 : prepareTrackIndex + 1;
+            playPrepareTrack(quiz, idx);
+        });
+
+        document.getElementById('playShuffle').addEventListener('click', function() {
+            prepareShuffle = !prepareShuffle;
+            this.textContent = prepareShuffle ? '🔀 Вкл' : '🔀 Перемешать';
+            prepareShuffled = [];
+            const quiz = APP.library.find(q => q.id === prepareQuizId);
+            if (quiz) playPrepareTrack(quiz, 0);
+        });
+
+        document.getElementById('gotoQuizBtn').addEventListener('click', function() {
+            const id = this.dataset.quizId;
+            if (!id) { alert('Сначала выберите викторину'); return; }
+            document.querySelector('[data-page="quiz"]').click();
+            document.getElementById('quizSelect').value = id;
+            document.getElementById('quizSelect').dispatchEvent(new Event('change'));
+        });
+
+        // ===== ВИКТОРИНА =====
+        function renderQuizSelect() {
+            const select = document.getElementById('quizSelect');
+            const val = select.value;
+            select.innerHTML = '<option value="">— выбери викторину —</option>';
+            APP.library.forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q.id;
+                opt.textContent = q.name + ` (${q.tracks.length} шт.)`;
+                select.appendChild(opt);
+            });
+            if (val && APP.library.some(q => q.id === val)) select.value = val;
+        }
+
+        // ===== ВЫБОР СЛОЖНОСТИ =====
+        const levelBtns = document.querySelectorAll('.level-btn');
+        levelBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                levelBtns.forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        document.getElementById('autoToggle').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        const showAnswerToggle = document.getElementById('showAnswerToggle');
+        if (showAnswerToggle) {
+            showAnswerToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        }
+
+        // ===== СТАРТ ВИКТОРИНЫ =====
+        document.getElementById('startQuizBtn').addEventListener('click', function() {
+            const quizId = document.getElementById('quizSelect').value;
+            if (!quizId) { alert('Выберите викторину'); return; }
+
+            const quiz = APP.library.find(q => q.id === quizId);
+            if (!quiz) return;
+
+            const selectedBtn = document.querySelector('.level-btn.selected');
+            const level = selectedBtn ? selectedBtn.dataset.level : 'easy';
+            const total = parseInt(document.getElementById('quizCount').value) || 20;
+            const autoNext = document.getElementById('autoToggle').classList.contains('active');
+            const showAnswer = document.getElementById('showAnswerToggle') ? document.getElementById('showAnswerToggle')
+                .classList.contains('active') : true;
+
+            let timeLimit = 90,
+                hintLimit = 3,
+                fromStart = true;
+            if (level === 'easy') { timeLimit = 90;
+                hintLimit = 3;
+                fromStart = true; } else if (level === 'medium') { timeLimit = 60;
+                hintLimit = 3;
+                fromStart = true; } else if (level === 'hard') { timeLimit = 45;
+                hintLimit = 1;
+                fromStart = false; }
+
+            let tracks = [...quiz.tracks];
+            for (let i = tracks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
+            }
+
+            const count = Math.min(total, tracks.length);
+            const selected = tracks.slice(0, count);
+
+            if (Q.timer) { clearInterval(Q.timer);
+                Q.timer = null; }
+
+            Q.quizId = quizId;
+            Q.level = level;
+            Q.questions = selected.map(t => ({ ...t }));
+            Q.currentIndex = 0;
+            Q.correctCount = 0;
+            Q.hintCount = hintLimit;
+            Q.totalQuestions = selected.length;
+            Q.autoNext = autoNext;
+            Q.showAnswer = showAnswer;
+            Q.answered = false;
+            Q.wrongTitles = [];
+            Q.timeLimit = timeLimit;
+            Q.fromStart = fromStart;
+            Q.isFinished = false;
+            Q.timeLeft = timeLimit;
+            Q.audioReady = false;
+            Q.waitingForAudio = false;
+            Q.history = [];
+            Q.pendingNext = false;
+
+            document.getElementById('quizSetup').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('finalScreen').classList.add('hidden');
+
+            showQuestion();
+        });
+
+        // ===== ПОКАЗ ВОПРОСА =====
+        function showQuestion() {
+            if (Q.isFinished) return;
+            if (Q.currentIndex >= Q.totalQuestions) { finishQuiz(); return; }
+
+            stopAudio();
+            Q.audioReady = false;
+            Q.waitingForAudio = false;
+            Q.answered = false;
+
+            const question = Q.questions[Q.currentIndex];
+            const num = Q.currentIndex + 1;
+
+            document.getElementById('questionNum').textContent = `Вопрос ${num} из ${Q.totalQuestions}`;
+
+            Q.timeLeft = Q.timeLimit;
+            updateTimerDisplay();
+            if (Q.timer) { clearInterval(Q.timer);
+                Q.timer = null; }
+            Q.timer = setInterval(timerTick, 1000);
+
+            document.getElementById('hintBtn').textContent = `💡 Подсказка (${Q.hintCount})`;
+            document.getElementById('hintBtn').disabled = Q.hintCount <= 0;
+
+            const container = document.getElementById('gameQuestion');
+            if (Q.level === 'easy') {
+                renderEasyQuestion(container, question);
+            } else {
+                renderInputQuestion(container);
+            }
+
+            document.getElementById('gameFeedback').innerHTML = '';
+            document.getElementById('submitBtn').disabled = true;
+
+            Q.waitingForAudio = true;
+
+            setTimeout(() => {
+                if (Q.isFinished || Q.answered) return;
+
+                const audio = document.getElementById('gameAudio');
+                audio.onloadedmetadata = null;
+                audio.oncanplay = null;
+
+                audio.onloadedmetadata = function() {
+                    if (!Q.fromStart && audio.duration > 10) {
+                        audio.currentTime = audio.duration * (0.3 + Math.random() * 0.4);
+                    }
+                };
+
+                audio.oncanplay = function() {
+                    if (Q.isFinished || Q.answered) return;
+                    Q.audioReady = true;
+                    Q.waitingForAudio = false;
+                    enableControls();
+                    audio.play().catch(() => {});
+                };
+
+                if (audio.readyState >= 3) {
+                    Q.audioReady = true;
+                    Q.waitingForAudio = false;
+                    enableControls();
+                    audio.play().catch(() => {});
+                }
+
+                audio.src = getAudioUrl(question.file);
+                audio.load();
+
+                setTimeout(() => {
+                    if (Q.waitingForAudio && !Q.answered && !Q.isFinished) {
+                        Q.audioReady = true;
+                        Q.waitingForAudio = false;
+                        enableControls();
+                        document.getElementById('gameFeedback').innerHTML =
+                            `<div class="game-feedback hint">⚠️ Аудио загружается долго, ответь по памяти</div>`;
+                    }
+                }, 5000);
+
+            }, 300);
+        }
+
+        function enableControls() {
+            if (Q.answered || Q.isFinished) return;
+            document.getElementById('submitBtn').disabled = false;
+
+            const container = document.getElementById('gameQuestion');
+            container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('disabled'));
+
+            const input = document.getElementById('answerInput');
+            if (input) { input.disabled = false;
+                input.focus(); }
+        }
+
+        // ===== ЛЁГКИЙ УРОВЕНЬ =====
+        function renderEasyQuestion(container, question) {
+            const allTitles = Q.questions.map(q => q.title);
+            const correct = question.title;
+            let wrongs = allTitles.filter(t => t !== correct);
+
+            for (let i = wrongs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [wrongs[i], wrongs[j]] = [wrongs[j], wrongs[i]];
+            }
+
+            wrongs = wrongs.slice(0, 3);
+            while (wrongs.length < 3) wrongs.push('Другой вариант');
+
+            const options = [correct, ...wrongs];
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
+
+            container.innerHTML = `
+                        <p style="font-weight:600;margin-bottom:10px;">Выбери правильное название:</p>
+                        <div class="game-options" id="optionsContainer">
+                            ${options.map(opt => `<button class="option-btn disabled" data-value="${opt}">${opt}</button>`).join('')}
+                        </div>
+                    `;
+
+            container.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (Q.answered || Q.isFinished || !Q.audioReady) return;
+                    const selected = this.dataset.value;
+                    const correct = Q.questions[Q.currentIndex].title;
+                    const isCorrect = selected === correct;
+
+                    container.querySelectorAll('.option-btn').forEach(b => {
+                        b.classList.add('disabled');
+                        if (b.dataset.value === correct) b.classList.add('correct');
+                        if (b === this && !isCorrect) b.classList.add('wrong');
+                    });
+
+                    handleAnswer(isCorrect);
+                });
+            });
+
+            document.getElementById('submitBtn').classList.add('hidden');
+        }
+
+        // ===== СРЕДНИЙ / СЛОЖНЫЙ =====
+        function renderInputQuestion(container) {
+            container.innerHTML = `
+                        <p style="font-weight:600;margin-bottom:10px;">Введите название произведения:</p>
+                        <input type="text" class="game-input" id="answerInput" placeholder="Введите ответ..." disabled>
+                    `;
+            document.getElementById('submitBtn').classList.remove('hidden');
+            document.getElementById('submitBtn').disabled = true;
+
+            const input = document.getElementById('answerInput');
+            if (input) {
+                input.value = '';
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') document.getElementById('submitBtn').click();
+                });
+            }
+        }
+
+        // ===== ОБРАБОТКА ОТВЕТА =====
+        function handleAnswer(isCorrect) {
+            if (Q.answered || Q.isFinished) return;
+            Q.answered = true;
+            Q.waitingForAudio = false;
+
+            if (Q.timer) { clearInterval(Q.timer);
+                Q.timer = null; }
+
+            stopAudio();
+
+            const question = Q.questions[Q.currentIndex];
+
+            Q.history.push({
+                title: question.title,
+                correct: isCorrect
+            });
+
+            if (isCorrect) {
+                Q.correctCount++;
+            } else {
+                Q.wrongTitles.push(question.title);
+            }
+
+            if (Q.showAnswer) {
+                showAnswerModal(isCorrect, question.title);
+            } else {
+                const feedback = document.getElementById('gameFeedback');
+                if (isCorrect) {
+                    feedback.innerHTML = `<div class="game-feedback correct">✅ Правильно!</div>`;
+                } else {
+                    feedback.innerHTML =
+                        `<div class="game-feedback wrong">❌ Неправильно! Правильный ответ: <strong>«${question.title}»</strong></div>`;
+                }
+
+                document.getElementById('submitBtn').disabled = true;
+                const container = document.getElementById('gameQuestion');
+                container.querySelectorAll('.option-btn').forEach(b => b.classList.add('disabled'));
+                const input = document.getElementById('answerInput');
+                if (input) input.disabled = true;
+
+                setTimeout(() => {
+                    if (Q.isFinished) return;
+                    if (Q.currentIndex + 1 >= Q.totalQuestions) {
+                        finishQuiz();
+                    } else {
+                        Q.currentIndex++;
+                        showQuestion();
+                    }
+                }, 1500);
+            }
+        }
+
+        // ===== МОДАЛЬНОЕ ОКНО С ОТВЕТОМ =====
+        function showAnswerModal(isCorrect, correctTitle) {
+            const oldModal = document.querySelector('.answer-modal-overlay');
+            if (oldModal) oldModal.remove();
+
+            const overlay = document.createElement('div');
+            overlay.className = 'answer-modal-overlay';
+
+            let countdown = 3;
+
+            overlay.innerHTML = `
+                        <div class="answer-modal">
+                            <span class="icon">${isCorrect ? '🎉' : '😅'}</span>
+                            <div class="title ${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? 'Правильно!' : 'Неправильно!'}</div>
+                            ${!isCorrect ? `<div class="correct-answer">Правильный ответ: «${correctTitle}»</div>` : ''}
+                            <div class="sub">Следующий вопрос через</div>
+                            <div class="countdown" id="modalCountdown">${countdown}</div>
+                            <button class="btn btn-primary" id="modalNextBtn">⏭ Сейчас</button>
+                        </div>
+                    `;
+
+            document.body.appendChild(overlay);
+
+            let timer = setInterval(() => {
+                countdown--;
+                const el = document.getElementById('modalCountdown');
+                if (el) el.textContent = countdown;
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    closeModalAndNext();
+                }
+            }, 1000);
+
+            const closeModalAndNext = () => {
+                const modal = document.querySelector('.answer-modal-overlay');
+                if (modal) modal.remove();
+                if (Q.isFinished) return;
+                if (Q.currentIndex + 1 >= Q.totalQuestions) {
+                    finishQuiz();
+                } else {
+                    Q.currentIndex++;
+                    showQuestion();
+                }
+            };
+
+            document.getElementById('modalNextBtn').addEventListener('click', function() {
+                clearInterval(timer);
+                closeModalAndNext();
+            });
+
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    clearInterval(timer);
+                    closeModalAndNext();
+                }
+            });
+        }
+
+        // ===== ТАЙМЕР =====
+        function timerTick() {
+            Q.timeLeft--;
+            updateTimerDisplay();
+
+            if (Q.timeLeft <= 0) {
+                clearInterval(Q.timer);
+                Q.timer = null;
+
+                if (!Q.answered && !Q.isFinished) {
+                    Q.waitingForAudio = false;
+                    stopAudio();
+
+                    const question = Q.questions[Q.currentIndex];
+                    Q.wrongTitles.push(question.title);
+                    Q.answered = true;
+
+                    Q.history.push({
+                        title: question.title,
+                        correct: false
+                    });
+
+                    document.getElementById('submitBtn').disabled = true;
+                    const container = document.getElementById('gameQuestion');
+                    container.querySelectorAll('.option-btn').forEach(b => b.classList.add('disabled'));
+                    const input = document.getElementById('answerInput');
+                    if (input) input.disabled = true;
+
+                    if (Q.showAnswer) {
+                        showAnswerModal(false, question.title);
+                    } else {
+                        const feedback = document.getElementById('gameFeedback');
+                        feedback.innerHTML =
+                            `<div class="game-feedback wrong">⏰ Время вышло! Правильный ответ: <strong>«${question.title}»</strong></div>`;
+                        setTimeout(() => {
+                            if (Q.isFinished) return;
+                            if (Q.currentIndex + 1 >= Q.totalQuestions) {
+                                finishQuiz();
+                            } else {
+                                Q.currentIndex++;
+                                showQuestion();
+                            }
+                        }, 1500);
+                    }
+                }
+            }
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timerDisplay');
+            const mins = Math.floor(Q.timeLeft / 60);
+            const secs = Q.timeLeft % 60;
+            display.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            display.classList.toggle('warning', Q.timeLeft <= 10);
+        }
+
+        // ===== ПОДСКАЗКА =====
+        document.getElementById('hintBtn').addEventListener('click', function() {
+            if (Q.hintCount <= 0 || Q.answered || Q.isFinished) return;
+
+            Q.hintCount--;
+            this.textContent = `💡 Подсказка (${Q.hintCount})`;
+            if (Q.hintCount <= 0) this.disabled = true;
+
+            const question = Q.questions[Q.currentIndex];
+            let hint = '';
+
+            if (Q.level === 'easy') {
+                const container = document.getElementById('optionsContainer');
+                const buttons = container.querySelectorAll('.option-btn');
+                const correct = question.title;
+                let wrongs = [];
+                buttons.forEach(b => { if (b.dataset.value !== correct) wrongs.push(b); });
+
+                for (let i = wrongs.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [wrongs[i], wrongs[j]] = [wrongs[j], wrongs[i]];
+                }
+
+                const toRemove = wrongs.slice(0, Math.min(2, wrongs.length));
+                toRemove.forEach(b => {
+                    b.style.opacity = '0.3';
+                    b.style.pointerEvents = 'none';
+                });
+                hint = '🔍 Убраны два неправильных варианта';
+            } else {
+                const words = question.title.split(' ');
+                hint = words.length > 0 ? `📝 Первое слово: "${words[0]}"` : `📝 Первая буква: "${question.title.charAt(0)}"`;
+            }
+
+            document.getElementById('gameFeedback').innerHTML = `<div class="game-feedback hint">💡 ${hint}</div>`;
+        });
+
+        // ===== ОТВЕТИТЬ =====
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            if (Q.answered || Q.isFinished || !Q.audioReady) return;
+
+            const input = document.getElementById('answerInput');
+            if (!input) return;
+
+            const userAnswer = input.value.trim();
+            if (!userAnswer) { alert('Введите ответ'); return; }
+
+            const correct = Q.questions[Q.currentIndex].title;
+            const isCorrect = userAnswer.toLowerCase().replace(/\s+/g, ' ') === correct.toLowerCase().replace(/\s+/g,
+                ' ');
+
+            handleAnswer(isCorrect);
+        });
+
+        // ===== АУДИО =====
+        function stopAudio() {
+            const audio = document.getElementById('gameAudio');
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        document.getElementById('gamePlay').addEventListener('click', function() {
+            if (Q.audioReady) document.getElementById('gameAudio').play().catch(() => {});
+        });
+
+        document.getElementById('gamePause').addEventListener('click', function() {
+            document.getElementById('gameAudio').pause();
+        });
+
+        // ============================================
+        // ===== ЗАВЕРШЕНИЕ ВИКТОРИНЫ =====
+        // ============================================
+        function finishQuiz() {
+            if (Q.isFinished) return;
+            Q.isFinished = true;
+            Q.waitingForAudio = false;
+
+            if (Q.timer) { clearInterval(Q.timer);
+                Q.timer = null; }
+            stopAudio();
+
+            document.getElementById('gameScreen').classList.add('hidden');
+
+            const total = Q.totalQuestions;
+            const correct = Q.correctCount;
+            const percent = Math.round((correct / total) * 100);
+
+            const quiz = APP.library.find(q => q.id === Q.quizId);
+            APP.results.push({
+                date: new Date().toLocaleDateString('ru-RU'),
+                time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                quizName: quiz ? quiz.name : 'Неизвестно',
+                level: Q.level === 'easy' ? 'Лёгкий' : Q.level === 'medium' ? 'Средний' : 'Сложный',
+                correct: correct,
+                total: total,
+                percent: percent,
+                history: Q.history
+            });
+            saveAppData();
+
+            let medal = '',
+                title = '';
+            if (percent >= 90) { medal = '🏆';
+                title = 'Маэстро!'; } else if (percent >= 70) { medal = '🎵';
+                title = 'Хороший результат!'; } else if (percent >= 50) { medal = '📖';
+                title = 'Нужно ещё позаниматься'; } else { medal = '💪';
+                title = 'Попробуй ещё раз!'; }
+
+            let recommendation = '';
+            if (Q.wrongTitles.length > 0) {
+                const unique = [...new Set(Q.wrongTitles)];
+                recommendation =
+                    `<div class="card" style="text-align:left;"><strong>📌 Рекомендация:</strong><br>Повтори: ${unique.join(', ')}</div>`;
+            } else if (percent === 100) {
+                recommendation =
+                    `<div class="card" style="text-align:left;">🌟 Идеальный результат! Ты отлично знаешь этот материал!</div>`;
+            } else {
+                recommendation = `<div class="card" style="text-align:left;">👍 Продолжай в том же духе!</div>`;
+            }
+
+            let historyHtml = '';
+            if (Q.history.length > 0) {
+                historyHtml = `
+                            <button class="btn btn-secondary btn-sm" id="showHistoryBtn" style="width:auto;margin:8px auto;">📋 Показать историю ответов</button>
+                            <div id="historyContainer" class="hidden" style="margin-top:10px;text-align:left;max-height:200px;overflow-y:auto;">
+                                ${Q.history.map((h, i) => `
+                                    <div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:14px;">
+                                        ${i+1}. ${h.title} — ${h.correct ? '✅' : '❌'}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+            }
+
+            document.getElementById('finalContent').innerHTML = `
+                        <div class="card" style="text-align:center;">
+                            <span style="font-size:64px;display:block;">${medal}</span>
+                            <div style="font-size:32px;font-weight:700;">${title}</div>
+                            <div style="font-size:48px;font-weight:700;color:var(--accent);">${percent}%</div>
+                            <div style="font-size:18px;color:var(--text-secondary);">${correct} из ${total} правильных</div>
+                            ${recommendation}
+                            ${historyHtml}
+                        </div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+                            <button class="btn btn-primary" id="retryQuizBtn">🔄 Пройти ещё раз</button>
+                            <button class="btn btn-secondary" id="backToMenuBtn">🏠 Главное меню</button>
+                        </div>
+                    `;
+
+            document.getElementById('finalScreen').classList.remove('hidden');
+
+            document.getElementById('retryQuizBtn').addEventListener('click', function() {
+                document.getElementById('finalScreen').classList.add('hidden');
+                document.getElementById('quizSetup').classList.remove('hidden');
+                document.getElementById('gameScreen').classList.add('hidden');
+                Q.isFinished = false;
+            });
+
+            document.getElementById('backToMenuBtn').addEventListener('click', function() {
+                document.querySelector('[data-page="results"]').click();
+                renderResults();
+                Q.isFinished = false;
+            });
+
+            const historyBtn = document.getElementById('showHistoryBtn');
+            if (historyBtn) {
+                historyBtn.addEventListener('click', function() {
+                    const container = document.getElementById('historyContainer');
+                    container.classList.toggle('hidden');
+                    this.textContent = container.classList.contains('hidden') ? '📋 Показать историю ответов' :
+                        '📋 Скрыть историю';
+                });
+            }
+
+            renderResults();
+        }
+
+        // ============================================
+        // ===== РЕЗУЛЬТАТЫ =====
+        // ============================================
+        function renderResults() {
+            const container = document.getElementById('resultsList');
+
+            if (APP.results.length === 0) {
+                container.innerHTML =
+                    `<div class="card" style="text-align:center;padding:40px;color:var(--text-secondary);">📭 Здесь будут твои результаты<br><small>Пройди викторину, чтобы увидеть статистику</small></div>`;
+                return;
+            }
+
+            const sorted = [...APP.results].reverse();
+
+            container.innerHTML = sorted.map(r => {
+                const isHigh = r.percent >= 90;
+                return `
+                            <div class="result-card ${isHigh ? 'high' : ''}">
+                                <div class="date">📅 ${r.date} ${r.time || ''} — ${r.quizName} (${r.level})</div>
+                                <div class="info">
+                                    <span class="score">${r.correct} из ${r.total}</span>
+                                    <span class="percent">${r.percent}%</span>
+                                </div>
+                            </div>
+                        `;
+            }).join('');
+
+            const avg = APP.results.reduce((s, r) => s + r.percent, 0) / APP.results.length;
+            const best = Math.max(...APP.results.map(r => r.percent));
+
+            const summary = document.createElement('div');
+            summary.className = 'stats-summary';
+            summary.innerHTML = `
+                        <span>📈 Средний: <strong>${Math.round(avg)}%</strong></span>
+                        <span>🏆 Лучший: <strong>${best}%</strong></span>
+                        <span>📊 Викторин: <strong>${APP.results.length}</strong></span>
+                    `;
+            container.prepend(summary);
+        }
+
+        document.getElementById('clearResultsBtn').addEventListener('click', function() {
+            if (confirm('Удалить всю историю результатов?')) {
+                APP.results = [];
+                saveAppData();
+                renderResults();
+            }
+        });
+
+        // ============================================
+        // ===== НАСТРОЙКИ =====
+        // ============================================
+        function renderSettings() {
+            document.getElementById('settingsName').textContent = APP.user.name || '—';
+            const instMap = { school: '🎵 Музыкальная школа', college: '🎓 Колледж', university: '🏛️ ВУЗ',
+                self: '🎧 Самоучка' };
+            document.getElementById('settingsInstitute').textContent = instMap[APP.user.institute] || '—';
+        }
+
+        document.getElementById('editProfileBtn').addEventListener('click', function() {
+            const newName = prompt('Введите ваше имя:', APP.user.name);
+            if (newName && newName.trim()) {
+                APP.user.name = newName.trim();
+                saveAppData();
+                renderSettings();
+            }
+
+            const instMap = { school: 'Музыкальная школа', college: 'Колледж', university: 'ВУЗ', self: 'Самоучка' };
+            const currentInst = instMap[APP.user.institute] || 'Колледж';
+            const newInst = prompt('Выберите заведение (школа, колледж, вуз, самоучка):', currentInst);
+            if (newInst) {
+                const lower = newInst.toLowerCase();
+                if (lower.includes('школ')) APP.user.institute = 'school';
+                else if (lower.includes('вуз') || lower.includes('универ') || lower.includes('высш')) APP.user.institute =
+                    'university';
+                else if (lower.includes('сам') || lower.includes('самоуч')) APP.user.institute = 'self';
+                else APP.user.institute = 'college';
+                saveAppData();
+                renderSettings();
+            }
+        });
+
+        document.getElementById('soundToggle').addEventListener('click', function() {
+            this.classList.toggle('active');
+            APP.settings.sound = this.classList.contains('active');
+            saveAppData();
+        });
+
+        document.getElementById('volumeSlider').addEventListener('input', function() {
+            APP.settings.volume = parseFloat(this.value);
+            saveAppData();
+            document.querySelectorAll('audio').forEach(a => a.volume = APP.settings.volume);
+        });
+
+        document.getElementById('clearCacheBtn').addEventListener('click', function() {
+            if (confirm('Очистить кэш (офлайн-данные)? Это не удалит твои викторины и результаты.')) {
+                if ('caches' in window) {
+                    caches.keys().then(keys => {
+                        keys.forEach(key => caches.delete(key));
+                    });
+                }
+                alert('✅ Кэш очищен');
+            }
+        });
+
+        // ============================================
+        // ===== OFFLINE =====
+        // ============================================
+        function updateOfflineStatus() {
+            const badge = document.getElementById('offlineBadge');
+            badge.classList.toggle('show', !navigator.onLine);
+        }
+
+        window.addEventListener('online', updateOfflineStatus);
+        window.addEventListener('offline', updateOfflineStatus);
+        updateOfflineStatus();
+
+        // ============================================
+        // ===== SERVICE WORKER =====
+        // ============================================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('🔧 Service Worker зарегистрирован'))
+                .catch(() => console.log('⚠️ Service Worker не доступен'));
+        }
+
+        // ============================================
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        // ============================================
+        function renderAll() {
+            renderLibrary();
+            renderPrepareSelect();
+            renderQuizSelect();
+            renderResults();
+            renderSettings();
+            if (prepareQuizId) loadPrepare(prepareQuizId);
+        }
+
+        loadAppData();
+        checkOnboarding();
+
+        console.log('🎵 MuQwiz загружен!');
+        console.log('📚 Викторин:', APP.library.length);
+        console.log('📊 Результатов:', APP.results.length);
+        console.log('❤️ Избранное:', APP.favorites.length);
+        console.log('⏱️ Таймкодов:', Object.keys(APP.timecodes).length);
+    </script>
+
+</body>
+</html>
