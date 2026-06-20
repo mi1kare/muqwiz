@@ -21,9 +21,9 @@ window.scanGoogleDrive = async function(link) {
 
     console.log('📁 ID папки:', folderId);
 
-    // ВСТАВЬ СВОЙ API-КЛЮЧ ВМЕСТО "ТВОЙ_КЛЮЧ_ЗДЕСЬ"!
-    const apiKey = "AIzaSyAKtOvwvOQOBsGy4vFi_HmSN6U33WcWcbE";
-    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType)&corpora=user`;
+    // ТВОЙ API-КЛЮЧ (В КАВЫЧКАХ!)
+    const apiKey = 'AIzaSyAKtOvwvOQOBsGy4vFi_HmSN6U33WcWcbE';
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType)`;
 
     console.log('📡 Отправляем запрос к Google API...');
     const response = await fetch(url);
@@ -47,12 +47,10 @@ window.scanGoogleDrive = async function(link) {
 
     console.log('🎵 MP3 файлов:', mp3Files.length);
 
-    // Добавляем информацию о файлах для отладки
     mp3Files.forEach(f => {
       console.log('  -', f.name, '(ID:', f.id, ')');
     });
 
-    // Формируем результат с прямыми ссылками для скачивания
     return mp3Files.map(f => ({
       id: f.id,
       name: f.name,
