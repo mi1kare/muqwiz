@@ -442,9 +442,20 @@
             padding: 8px 0;
             border-bottom: 1px solid var(--border);
         }
-        .edit-track-item .title {
+        .edit-track-item .edit-track-title {
             flex: 1;
-            font-weight: 500;
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            background: var(--bg);
+            color: var(--text);
+            transition: 0.2s;
+            min-width: 0;
+        }
+        .edit-track-item .edit-track-title:focus {
+            outline: none;
+            border-color: var(--accent);
         }
         .edit-track-item .btn-sm {
             flex-shrink: 0;
@@ -1642,7 +1653,7 @@
         }
 
         // ============================================
-        // ===== РЕДАКТОР ВИКТОРИНЫ =====
+        // ===== РЕДАКТОР ВИКТОРИНЫ (С ВОЗМОЖНОСТЬЮ ПЕРЕИМЕНОВАНИЯ) =====
         // ============================================
         let editingQuizId = null;
 
@@ -1658,7 +1669,7 @@
             container.innerHTML = `
                         <div class="quiz-detail">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                                <span style="font-size:20px;font-weight:700;">✏️ Редактировать</span>
+                                <span style="font-size:20px;font-weight:700;">✏️ Редактировать викторину</span>
                                 <button class="btn btn-sm btn-secondary" id="editorCancel">✖ Закрыть</button>
                             </div>
 
@@ -1671,7 +1682,7 @@
                             <div id="editorTrackList">
                                 ${quiz.tracks.map((t, i) => `
                                     <div class="edit-track-item" data-index="${i}">
-                                        <span class="title">${i+1}. ${t.title}</span>
+                                        <input type="text" class="input-field edit-track-title" data-index="${i}" value="${t.title}" style="flex:1;margin-right:10px;padding:8px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--bg);color:var(--text);">
                                         <button class="btn btn-sm btn-danger remove-track-btn" data-index="${i}">✖</button>
                                     </div>
                                 `).join('')}
@@ -1695,6 +1706,7 @@
                         </div>
                     `;
 
+            // Закрытие редактора
             const closeEditor = () => {
                 editingQuizId = null;
                 showQuizDetail(quizId);
@@ -1703,6 +1715,7 @@
             document.getElementById('editorCancel').addEventListener('click', closeEditor);
             document.getElementById('editorCancel2').addEventListener('click', closeEditor);
 
+            // Удаление треков
             document.querySelectorAll('.remove-track-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const idx = parseInt(this.dataset.index);
@@ -1713,6 +1726,7 @@
                 });
             });
 
+            // Добавление трека
             document.getElementById('addTrackBtn').addEventListener('click', function() {
                 const title = document.getElementById('newTrackTitle').value.trim();
                 const file = document.getElementById('newTrackFile').value.trim();
@@ -1723,11 +1737,23 @@
                 openEditor(quizId);
             });
 
+            // Сохранение изменений (включая переименованные треки)
             document.getElementById('editorSave').addEventListener('click', function() {
                 const newName = document.getElementById('editorName').value.trim();
                 if (!newName) { alert('Введите название викторины'); return; }
 
-                let targetQuiz = quiz;
+                // Собираем новые названия треков из полей ввода
+                const titleInputs = document.querySelectorAll('.edit-track-title');
+                const newTitles = Array.from(titleInputs).map(inp => inp.value.trim() || 'Без названия');
+
+                // Обновляем названия треков
+                quiz.tracks.forEach((t, i) => {
+                    if (i < newTitles.length) {
+                        t.title = newTitles[i];
+                    }
+                });
+
+                // Если редактируем не свою — копируем в "Мои"
                 if (!isMy) {
                     const copy = JSON.parse(JSON.stringify(quiz));
                     copy.id = genId();
@@ -1735,17 +1761,27 @@
                     copy.name = newName;
                     APP.library.push(copy);
                     saveAppData();
-                    alert(`✅ Викторина скопирована в "Мои" с новым названием`);
+                    alert(`✅ Викторина скопирована в "Мои" с новыми названиями`);
                     closeEditor();
                     renderLibrary();
                     return;
                 }
 
+                // Обновляем свою
                 quiz.name = newName;
                 saveAppData();
                 alert('✅ Викторина сохранена');
                 closeEditor();
                 renderLibrary();
+            });
+
+            // Сохранение при нажатии Enter в полях названий треков
+            document.querySelectorAll('.edit-track-title').forEach(inp => {
+                inp.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        document.getElementById('editorSave').click();
+                    }
+                });
             });
         }
 
@@ -1820,7 +1856,7 @@
         });
 
         // ============================================
-        // ===== НОВЫЙ МЕТОД: GOOGLE ДИСК (через bundle.js) =====
+        // ===== GOOGLE ДИСК (через bundle.js) =====
         // ============================================
         window.gdriveTracks = [];
 
@@ -1831,26 +1867,22 @@
                 return;
             }
 
-            // Проверяем, что функция из bundle.js доступна
             if (typeof scanGoogleDrive !== 'function') {
                 alert('❌ Функция scanGoogleDrive не загружена. Проверьте сборку.');
                 console.error('scanGoogleDrive не определён. Запустите npx webpack');
                 return;
             }
 
-            // Показываем прогресс
             document.getElementById('gdriveProgress').classList.remove('hidden');
             document.getElementById('gdriveResults').classList.add('hidden');
             document.getElementById('scanGdriveBtn').disabled = true;
 
             console.log('🔍 Начинаем сканирование папки:', link);
 
-            // Используем функцию из bundle.js
             scanGoogleDrive(link)
                 .then(mp3Files => {
                     console.log('🎵 MP3 файлов:', mp3Files.length);
 
-                    // Показываем результаты
                     document.getElementById('gdriveProgress').classList.add('hidden');
                     document.getElementById('gdriveResults').classList.remove('hidden');
                     document.getElementById('gdriveFileCount').textContent = mp3Files.length;
@@ -1858,18 +1890,13 @@
 
                     if (mp3Files.length === 0) {
                         document.getElementById('gdriveFileList').innerHTML =
-                            '<div style="color:var(--text-secondary);padding:10px;">❌ MP3 файлы не найдены в этой папке</div>';
+                            '<div style="color:var(--text-secondary);padding:10px;">❌ MP3 файлы не найдены</div>';
                         window.gdriveTracks = [];
                         return;
                     }
 
-                    // Сохраняем треки
-                    window.gdriveTracks = mp3Files.map(f => ({
-                        file: f.downloadUrl || f.url || `https://drive.google.com/uc?id=${f.id}&export=download`,
-                        title: f.name.replace(/\.mp3$/i, '').replace(/[_-]/g, ' ')
-                    }));
+                    window.gdriveTracks = mp3Files;
 
-                    // Показываем список
                     document.getElementById('gdriveFileList').innerHTML = mp3Files.map((f, i) => `
                                 <div style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
                                     <span>${i+1}. ${f.name}</span>
@@ -1877,17 +1904,13 @@
                                 </div>
                             `).join('');
 
-                    alert(`✅ Найдено ${mp3Files.length} MP3 файлов! Нажмите "Сохранить викторину" для добавления.`);
+                    alert(`✅ Найдено ${mp3Files.length} MP3 файлов! Нажмите "Сохранить"`);
                 })
                 .catch(err => {
-                    console.error('Ошибка сканирования:', err);
+                    console.error('Ошибка:', err);
                     document.getElementById('gdriveProgress').classList.add('hidden');
                     document.getElementById('scanGdriveBtn').disabled = false;
-                    alert('❌ Ошибка при сканировании папки.\n\n' +
-                        'Убедитесь, что:\n' +
-                        '1. Папка общедоступна (доступ по ссылке)\n' +
-                        '2. Ссылка правильная\n\n' +
-                        'Ошибка: ' + (err.message || 'Неизвестная ошибка'));
+                    alert('❌ Ошибка при сканировании:\n' + (err.message || 'Неизвестная ошибка'));
                 });
         });
 
