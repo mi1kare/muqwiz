@@ -65,13 +65,7 @@ async function scanGoogleDrive(folderLink) {
         title: f.name.replace(/\.mp3$/i, '')
     }));
 }
-    // Возвращаем ID и имена файлов (без прямых ссылок)
-    const mp3Files = allFiles.filter(f => f.name.toLowerCase().endsWith('.mp3'));
-    return mp3Files.map(f => ({
-        id: f.id,
-        title: f.name.replace(/\.mp3$/i, '')
-    }));
-}
+
 // ============================================
 // ===== ЗАГРУЗКА И СОХРАНЕНИЕ =====
 // ============================================
@@ -260,19 +254,16 @@ window.editQuizName = function(quizId) {
 
     const container = document.getElementById('libraryContent');
     
-    // Отрисовываем интерфейс редактора
     container.innerHTML = `
         <div class="quiz-detail">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                 <span style="font-size:20px;font-weight:700;">✏️ Редактировать викторину</span>
                 <button class="btn btn-sm btn-secondary" onclick="showQuizDetail('${quizId}')">✖ Закрыть</button>
             </div>
-
             <div class="form-group">
                 <label>Название викторины</label>
                 <input type="text" class="input-field" id="editorQuizName" value="${quiz.name}">
             </div>
-
             <div style="margin:12px 0;font-weight:600;">Треки (${quiz.tracks.length})</div>
             <div id="editorTrackList">
                 ${quiz.tracks.map((t, i) => `
@@ -282,7 +273,6 @@ window.editQuizName = function(quizId) {
                     </div>
                 `).join('')}
             </div>
-
             <div style="margin-top:16px;">
                 <button class="btn btn-primary" id="editorSaveBtn">💾 Сохранить</button>
                 <button class="btn btn-secondary" onclick="showQuizDetail('${quizId}')" style="margin-top:8px;">Отмена</button>
@@ -290,24 +280,21 @@ window.editQuizName = function(quizId) {
         </div>
     `;
 
-    // Обработчик удаления трека
     container.querySelectorAll('.remove-track-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const idx = parseInt(this.dataset.index);
             if (confirm(`Удалить трек "${quiz.tracks[idx].title}"?`)) {
                 quiz.tracks.splice(idx, 1);
                 saveAppData();
-                window.editQuizName(quizId); // Перерисовываем редактор
+                window.editQuizName(quizId);
             }
         });
     });
 
-    // Обработчик сохранения изменений
     document.getElementById('editorSaveBtn').addEventListener('click', async function() {
         const newName = document.getElementById('editorQuizName').value.trim();
         if (!newName) { alert('Введите название викторины'); return; }
 
-        // Собираем новые названия треков из полей
         const titleInputs = container.querySelectorAll('.track-title-edit');
         titleInputs.forEach(inp => {
             const idx = parseInt(inp.dataset.index);
@@ -319,7 +306,6 @@ window.editQuizName = function(quizId) {
         quiz.name = newName;
         saveAppData();
 
-        // Если викторина в облаке — обновляем её в базе
         if (db && quizId.startsWith('cloud_')) {
             const cleanId = quizId.replace('cloud_', '');
             try {
@@ -338,7 +324,7 @@ window.editQuizName = function(quizId) {
             alert('✅ Изменения сохранены локально!');
         }
 
-        showQuizDetail(quizId); // Возвращаемся к деталям
+        showQuizDetail(quizId);
     });
 };
 
@@ -352,7 +338,6 @@ window.deleteQuiz = function(quizId) {
     }
 };
 
-// Обработчики вкладок
 document.querySelectorAll('#libraryTabs button').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('#libraryTabs button').forEach(b => b.classList.remove('active'));
@@ -363,7 +348,7 @@ document.querySelectorAll('#libraryTabs button').forEach(btn => {
 });
 
 // ============================================
-// ===== ФОРМА ДОБАВЛЕНИЯ (с загрузкой файлов и Google Диском) =====
+// ===== ФОРМА ДОБАВЛЕНИЯ =====
 // ============================================
 const showAddBtn = document.getElementById('showAddForm');
 const addForm = document.getElementById('addForm');
@@ -380,7 +365,6 @@ if (showAddBtn && addForm) {
         showAddBtn.textContent = '➕ Добавить викторину';
     });
 
-    // Переключение способов
     const addMethodSelect = document.getElementById('addMethod');
     const fileDiv = document.getElementById('addMethodFiles');
     const gdriveDiv = document.getElementById('addMethodGdrive');
@@ -397,7 +381,6 @@ if (showAddBtn && addForm) {
         });
     }
 
-    // Сканирование Google Диска
     const scanBtn = document.getElementById('scanGdriveBtn');
     if (scanBtn) {
         scanBtn.addEventListener('click', async function() {
@@ -420,7 +403,6 @@ if (showAddBtn && addForm) {
         });
     }
 
-    // Сохранение викторины
     document.getElementById('saveQuizBtn').addEventListener('click', async () => {
         const name = document.getElementById('newQuizName').value.trim();
         const method = document.getElementById('addMethod').value;
@@ -442,12 +424,12 @@ if (showAddBtn && addForm) {
                     const { error } = await db.storage.from('music').upload(fileName, file);
                     if (error) throw error;
                     const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
-if (!urlData || !urlData.publicUrl) {
-    throw new Error('Не удалось получить ссылку на файл. Проверьте Storage.');
-}
-tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
+                    if (!urlData || !urlData.publicUrl) {
+                        throw new Error('Не удалось получить ссылку на файл. Проверьте Storage.');
+                    }
+                    tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
                 }
-                                    } else if (method === 'gdrive') {
+            } else if (method === 'gdrive') {
                 if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) { 
                     alert('Сначала сканируйте папку'); 
                     saveBtn.textContent = '💾 Сохранить'; 
@@ -457,38 +439,36 @@ tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl }
                 
                 saveBtn.textContent = '⏳ Скачиваем с Диска...';
                 
-                // Проходим по каждому файлу
                 for (let i = 0; i < window.scannedGdriveTracks.length; i++) {
                     const gFile = window.scannedGdriveTracks[i];
-                    
-                    // 1. Формируем прямую ссылку для скачивания
                     const downloadUrl = `https://drive.google.com/uc?export=download&id=${gFile.id}`;
-                    
-                    // 2. Скачиваем через публичный прокси (обходим CORS)
                     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
                     
                     const fileResponse = await fetch(proxyUrl);
                     if (!fileResponse.ok) throw new Error(`Не удалось скачать ${gFile.title}`);
                     
-                    // 3. Получаем файл как "Blob" (кусок данных)
                     const blob = await fileResponse.blob();
-                    
-                    // 4. Загружаем этот Blob в Supabase Storage
                     const fileName = `gdrive_${Date.now()}_${i}.mp3`;
                     const { error: uploadError } = await db.storage.from('music').upload(fileName, blob);
                     
                     if (uploadError) throw uploadError;
                     
-                    // 5. Получаем публичную ссылку на Supabase
                     const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
                     
-                    // 6. Сохраняем в список треков ссылку на Supabase!
                     tracks.push({ 
                         title: gFile.title, 
                         file: urlData.publicUrl 
                     });
                 }
+            } else {
+                const filesText = document.getElementById('trackFiles').value.trim();
+                if (!filesText) { alert('Введите ссылки'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
+                tracks = filesText.split('\n').map((url, i) => ({ title: `Трек ${i + 1}`, file: url.trim() }));
             }
+
+            const newQuiz = { id: 'local_' + Date.now(), name: name, tracks: tracks };
+            APP.library.push(newQuiz);
+            saveAppData();
 
             if (db) {
                 try {
@@ -602,7 +582,6 @@ function renderPrepareTracks(quiz) {
         return;
     }
 
-    // Отрисовываем треки с полями для заметок
     container.innerHTML = quiz.tracks.map((t, i) => {
         const noteKey = quiz.id + '_' + i;
         const savedNote = APP.notes[noteKey] || '';
@@ -618,7 +597,6 @@ function renderPrepareTracks(quiz) {
         `;
     }).join('');
 
-    // Сохраняем заметки при изменении
     container.querySelectorAll('.note-input').forEach(inp => {
         inp.addEventListener('change', function() {
             APP.notes[this.dataset.key] = this.value;
@@ -683,6 +661,7 @@ if (gotoQuizBtn) {
         if (this.dataset.quizId) window.location.href = 'quiz.html?id=' + this.dataset.quizId;
     });
 }
+
 // ============================================
 // ===== ВИКТОРИНА =====
 // ============================================
@@ -758,30 +737,21 @@ function showQuestion() {
     if (Q.timer) clearInterval(Q.timer);
     Q.timer = setInterval(timerTick, 1000);
 
-        const audio = document.getElementById('gameAudio');
+    const audio = document.getElementById('gameAudio');
     audio.src = q.file;
     audio.load();
-
-    // Убираем старый обработчик, чтобы он не срабатывал дважды
     audio.oncanplay = null;
-
-    // Флаг, чтобы перемотка сработала только 1 раз
     let seekDone = false; 
 
     audio.oncanplay = function() {
-        // Если мы уже перематывали для этого трека — ничего не делаем
         if (seekDone) {
             audio.play().catch(() => {});
             return;
         }
-
         if (!Q.fromStart && audio.duration > 10 && !seekDone) {
-            seekDone = true; // Ставим флаг
-            // Перематываем один раз
+            seekDone = true;
             audio.currentTime = audio.duration * (0.3 + Math.random() * 0.4);
         }
-        
-        // Включаем воспроизведение
         audio.play().catch(() => {});
     };
 
