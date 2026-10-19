@@ -44,9 +44,16 @@ async function scanGoogleDrive(folderLink) {
     }
     if (!folderId) throw new Error('Не удалось извлечь ID папки');
 
-    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&key=${GOOGLE_API_KEY}&fields=files(id,name,mimeType)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+    // Формируем правильный запрос: ID папки должен быть в одинарных кавычках
+    const q = `'${folderId}' in parents and trashed = false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${GOOGLE_API_KEY}&fields=files(id,name,mimeType)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+
     const response = await fetch(url);
-    if (!response.ok) throw new Error('Ошибка API Google');
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Google API Error:', errorData);
+        throw new Error(`Ошибка API Google: ${errorData.error?.message || response.status}`);
+    }
 
     const data = await response.json();
     const files = data.files || [];
@@ -55,7 +62,6 @@ async function scanGoogleDrive(folderLink) {
         file: `https://drive.google.com/uc?export=download&id=${f.id}`
     }));
 }
-
 // ============================================
 // ===== ЗАГРУЗКА И СОХРАНЕНИЕ =====
 // ============================================
