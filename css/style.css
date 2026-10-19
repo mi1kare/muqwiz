@@ -29,7 +29,8 @@ body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding-bottom: 80px;
+    /* ФИКС: Безопасная зона iPhone */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
 }
 
@@ -45,7 +46,8 @@ body.dark {
 .app-container {
     max-width: 500px;
     margin: 0 auto;
-    padding: 16px 16px 80px;
+    /* ФИКС: Учитываем меню и безопасную зону */
+    padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 .hidden {
@@ -158,6 +160,17 @@ body.dark {
     border-color: var(--accent);
 }
 
+/* ФИКС: Добавлен класс form-group, который потерялся */
+.form-group {
+    margin-bottom: 16px;
+}
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
 /* ============================================
    ОПРОСНИК
    ============================================ */
@@ -216,7 +229,8 @@ body.dark {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
-    padding: 8px 0 env(safe-area-inset-bottom);
+    /* ФИКС: Безопасная зона iPhone снизу */
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
     z-index: 100;
     backdrop-filter: blur(10px);
 }
@@ -230,6 +244,8 @@ body.dark {
     font-size: 11px;
     font-weight: 500;
     transition: 0.2s;
+    /* ФИКС: Небольшой отступ, чтобы не липло к краям */
+    padding: 0 4px;
 }
 .bottom-nav a .icon {
     font-size: 24px;
@@ -609,8 +625,22 @@ body.dark {
 }
 
 /* ============================================
-   НАСТРОЙКИ ВИКТОРИНЫ
+   НАСТРОЙКИ (И ВИКТОРИНЫ, И ПРИЛОЖЕНИЯ)
    ============================================ */
+/* ФИКС: Вернул стили для блоков в настройках */
+.settings-group {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+}
+.settings-group .title {
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 12px;
+}
 .settings-row {
     display: flex;
     justify-content: space-between;
@@ -621,14 +651,21 @@ body.dark {
 .settings-row:last-child {
     border-bottom: none;
 }
+.settings-row .label {
+    font-size: 15px;
+}
+.settings-row select,
+.settings-row input[type="range"],
 .settings-row input[type="number"] {
-    width: 70px;
-    padding: 6px 12px;
-    border: 2px solid var(--border);
-    border-radius: 30px;
-    font-size: 14px;
     background: var(--bg);
     color: var(--text);
+    border: 2px solid var(--border);
+    border-radius: 30px;
+    padding: 4px 12px;
+    font-size: 14px;
+}
+.settings-row input[type="number"] {
+    width: 70px;
 }
 
 /* ============================================
@@ -730,19 +767,20 @@ body.dark {
     color: #155724;
 }
 .game-options button.wrong {
-    border-color: var(--red);
-    background: #f8d7da;
+    border-color =: var(--red);
+    background: #f8d7da================================;
     color: #721c24;
 }
-.game-options button.disabled {
-    pointer-events: none;
+.game-========options button.disabled {
+    pointer-events: none===;
     opacity: 0.6;
 }
 
 .game-input {
+ */
     width: 100%;
     padding: 14px;
-    border: 3px solid var(--border);
+    border: 3px. solid var(--border);
     border-radius: var(--radius-sm);
     font-size: 18px;
     text-align: center;
@@ -788,8 +826,7 @@ body.dark {
 
 /* ============================================
    МОДАЛЬНОЕ ОКНО ОТВЕТА
-   ============================================ */
-.answer-modal-overlay {
+  answer-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -913,45 +950,6 @@ body.dark {
 }
 
 /* ============================================
-   НАСТРОЙКИ
-   ============================================ */
-.settings-group {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border);
-    margin-bottom: 16px;
-}
-.settings-group .title {
-    font-weight: 700;
-    font-size: 16px;
-    margin-bottom: 12px;
-}
-.settings-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-}
-.settings-row:last-child {
-    border-bottom: none;
-}
-.settings-row .label {
-    font-size: 15px;
-}
-.settings-row select,
-.settings-row input[type="range"] {
-    background: var(--bg);
-    color: var(--text);
-    border: 2px solid var(--border);
-    border-radius: 30px;
-    padding: 4px 12px;
-    font-size: 14px;
-}
-
-/* ============================================
    ОФЛАЙН-БЕЙДЖ И ЗАГРУЗЧИК
    ============================================ */
 .offline-badge {
@@ -990,7 +988,7 @@ body.dark {
    ============================================ */
 @media (max-width: 480px) {
     .app-container {
-        padding: 12px 12px 80px;
+        padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px));
     }
     .quiz-detail .actions .btn {
         min-width: 60px;
