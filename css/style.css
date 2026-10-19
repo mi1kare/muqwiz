@@ -468,7 +468,7 @@ body.dark {
 }
 
 /* ============================================
-   ПОДГОТОВКА (ФИКС: эти классы потерялись)
+   ПОДГОТОВКА
    ============================================ */
 .prepare-select {
     margin-bottom: 16px;
@@ -589,7 +589,8 @@ body.dark {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .level-btn.selected {
-    border-color: var color(--accent);
+    /* ФИКС: была опечатка var color */
+    border-color: var(--accent);
     background: var(--card);
     box-shadow: 0 0 0 3px rgba(139, 58, 42, 0.2);
 }
@@ -614,17 +615,16 @@ body.dark {
 }
 
 /* ============================================
-   НАСТРОЙКИ ВИКТОРИНЫ
+   НАСТРОЙКИ ВИКТОРИНЫ (ИСПРАВЛЕНЫ ОШИБКИ)
    ============================================ */
 .settings-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8:px 0;
-    border-bottom:  var1px solid var(--border(--);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
 }
-.settings-row:textlast-child {
-);
+.settings-row:last-child {
     border-bottom: none;
 }
 .settings-row input[type="number"] {
@@ -918,7 +918,7 @@ body.dark {
 }
 
 /* ============================================
-   НАСТРОЙКИ (ФИКС: эти классы тоже потерялись)
+   НАСТРОЙКИ
    ============================================ */
 .settings-group {
     background: var(--card);
