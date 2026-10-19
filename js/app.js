@@ -352,7 +352,10 @@ if (showAddBtn && addForm) {
                     const { error } = await db.storage.from('music').upload(fileName, file);
                     if (error) throw error;
                     const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
-                    tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
+if (!urlData || !urlData.publicUrl) {
+    throw new Error('Не удалось получить ссылку на файл. Проверьте Storage.');
+}
+tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
                 }
             } else if (method === 'gdrive') {
                 if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) { alert('Сначала сканируйте папку'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
