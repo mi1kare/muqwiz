@@ -1021,3 +1021,6 @@ body.dark {
         flex-wrap: wrap;
     }
 }
+body {
+    background: red !important;
+}
