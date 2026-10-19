@@ -59,6 +59,12 @@ async function scanGoogleDrive(folderLink) {
         }
     }
 
+    const mp3Files = allFiles.filter(f => f.name.toLowerCase().endsWith('.mp3'));
+    return mp3Files.map(f => ({
+        id: f.id,
+        title: f.name.replace(/\.mp3$/i, '')
+    }));
+}
     // Возвращаем ID и имена файлов (без прямых ссылок)
     const mp3Files = allFiles.filter(f => f.name.toLowerCase().endsWith('.mp3'));
     return mp3Files.map(f => ({
@@ -441,7 +447,7 @@ if (!urlData || !urlData.publicUrl) {
 }
 tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
                 }
-                        } else if (method === 'gdrive') {
+                                    } else if (method === 'gdrive') {
                 if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) { 
                     alert('Сначала сканируйте папку'); 
                     saveBtn.textContent = '💾 Сохранить'; 
@@ -449,37 +455,40 @@ tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl }
                     return; 
                 }
                 
-                saveBtn.textContent = '⏳ Скачиваем с Google Диска...';
+                saveBtn.textContent = '⏳ Скачиваем с Диска...';
                 
-                // Проходим по каждому файлу с Google Диска
+                // Проходим по каждому файлу
                 for (let i = 0; i < window.scannedGdriveTracks.length; i++) {
                     const gFile = window.scannedGdriveTracks[i];
                     
-                    // 1. Скачиваем файл через прокси (чтобы обойти блокировку)
+                    // 1. Формируем прямую ссылку для скачивания
                     const downloadUrl = `https://drive.google.com/uc?export=download&id=${gFile.id}`;
+                    
+                    // 2. Скачиваем через публичный прокси (обходим CORS)
                     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
                     
                     const fileResponse = await fetch(proxyUrl);
                     if (!fileResponse.ok) throw new Error(`Не удалось скачать ${gFile.title}`);
+                    
+                    // 3. Получаем файл как "Blob" (кусок данных)
                     const blob = await fileResponse.blob();
                     
-                    // 2. Загружаем этот файл в Supabase
+                    // 4. Загружаем этот Blob в Supabase Storage
                     const fileName = `gdrive_${Date.now()}_${i}.mp3`;
                     const { error: uploadError } = await db.storage.from('music').upload(fileName, blob);
+                    
                     if (uploadError) throw uploadError;
                     
-                    // 3. Получаем ссылку на Supabase
+                    // 5. Получаем публичную ссылку на Supabase
                     const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
                     
+                    // 6. Сохраняем в список треков ссылку на Supabase!
                     tracks.push({ 
                         title: gFile.title, 
                         file: urlData.publicUrl 
                     });
                 }
             }
-            const newQuiz = { id: 'local_' + Date.now(), name: name, tracks: tracks };
-            APP.library.push(newQuiz);
-            saveAppData();
 
             if (db) {
                 try {
