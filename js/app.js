@@ -32,7 +32,7 @@ if (typeof supabase !== 'undefined') {
 // ============================================
 // ===== GOOGLE DRIVE API =====
 // ============================================
-const GOOGLE_API_KEY = 'AIzaSyAKtOvwvOQ0BsGy4vFi_HmSN6U33WcWcbE';
+const GOOGLE_API_KEY = 'AIzaSyCM_2vu-v0bkN_EAm5lQpK-fYnI_SXzGik';
 
 async function scanGoogleDrive(folderLink) {
     // 1. Извлекаем ID папки (берем последний набор букв/цифр из ссылки)
