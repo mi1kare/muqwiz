@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MuQwiz — Викторина</title>
-    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
     <div id="app">
         <div class="app-container">
-
-            <!-- ===== СТРАНИЦА ВИКТОРИНЫ ===== -->
             <div class="page active" id="page-quiz">
                 <div class="page-title">🎯 Викторина</div>
 
-                <!-- Экран настройки (выбор викторины и уровня) -->
                 <div id="quizSetup">
                     <div class="card">
                         <div class="form-group">
@@ -25,81 +21,32 @@
                                 <option value="">— выбери викторину —</option>
                             </select>
                         </div>
-
-                        <div class="settings-row">
-                            <span>Количество вопросов</span>
-                            <input type="number" id="quizCount" value="20" min="5" max="100">
-                        </div>
-
-                        <div class="settings-row">
-                            <span>Автоматический переход</span>
-                            <div class="toggle active" id="autoToggle">
-                                <div class="slider"></div>
-                            </div>
-                        </div>
-
-                        <div class="settings-row">
-                            <span>Показать ответ сразу</span>
-                            <div class="toggle active" id="showAnswerToggle">
-                                <div class="slider"></div>
-                            </div>
-                        </div>
-
-                        <label style="font-weight:600;display:block;margin:16px 0 10px;">Выберите уровень сложности:</label>
-                        <div class="level-buttons" id="levelButtons">
-                            <button class="level-btn selected" data-level="easy">
-                                <span class="level-name">🟢 Лёгкий</span>
-                                <span class="level-desc">С начала<br>4 варианта<br>⏱ 1:30<br>💡 3 подсказки</span>
-                                <span class="level-badge">Рекомендуется</span>
-                            </button>
-                            <button class="level-btn" data-level="medium">
-                                <span class="level-name">🟡 Средний</span>
-                                <span class="level-desc">С начала<br>Вписать название<br>⏱ 1:00<br>💡 3 подсказки</span>
-                            </button>
-                            <button class="level-btn" data-level="hard">
-                                <span class="level-name">🔴 Сложный</span>
-                                <span class="level-desc">С середины<br>Вписать название<br>⏱ 0:45<br>💡 1 подсказка</span>
-                            </button>
-                        </div>
-
                         <button class="btn btn-primary" id="startQuizBtn">▶ Начать викторину</button>
                     </div>
                 </div>
 
-                <!-- Игровой экран -->
                 <div id="gameScreen" class="hidden">
                     <div class="game-header">
                         <span class="question-num" id="questionNum">Вопрос 1 из 20</span>
                         <span class="timer" id="timerDisplay">1:30</span>
                     </div>
-
                     <div class="game-player">
                         <audio id="gameAudio" controls></audio>
-                        <div style="display:flex;gap:10px;margin-top:10px;">
-                            <button class="btn btn-sm btn-secondary" id="gamePlay">▶ Воспроизвести</button>
-                            <button class="btn btn-sm btn-secondary" id="gamePause">⏸ Пауза</button>
-                        </div>
                     </div>
-
                     <div id="gameQuestion"></div>
-
                     <div class="game-actions">
-                        <button class="btn btn-gold" id="hintBtn">💡 Подсказка (3)</button>
+                        <button class="btn btn-gold" id="hintBtn">💡 Подсказка</button>
                         <button class="btn btn-primary" id="submitBtn">✅ Ответить</button>
                     </div>
-
                     <div id="gameFeedback"></div>
                 </div>
 
-                <!-- Экран результатов -->
                 <div id="finalScreen" class="hidden">
                     <div id="finalContent"></div>
                 </div>
             </div>
-
         </div>
 
-        <!-- ===== НИЖНЯЯ ПАНЕЛЬ ===== -->
         <div class="bottom-nav">
             <a href="index.html"><span class="icon">📚</span> Библиотека</a>
             <a href="prepare.html"><span class="icon">🎧</span> Подготовка</a>
