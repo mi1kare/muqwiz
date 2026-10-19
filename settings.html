@@ -1,54 +1,77 @@
-// ============================================
-// ===== НАСТРОЙКИ =====
-// ============================================
-function renderSettings() {
-    const nameEl = document.getElementById('settingsName');
-    if (nameEl) nameEl.textContent = APP.user.name || '—';
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuQwiz — Настройки</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 
-    const themeSelect = document.getElementById('themeSelect');
-    if (themeSelect) themeSelect.value = APP.settings.theme || 'light';
-}
+    <div id="app">
+        <div class="app-container">
+            <div class="page active" id="page-settings">
+                <div class="page-title">⚙️ Настройки</div>
 
-// Изменение имени
-const editProfileBtn = document.getElementById('editProfileBtn');
-if (editProfileBtn) {
-    editProfileBtn.addEventListener('click', function() {
-        const newName = prompt('Введите ваше имя:', APP.user.name);
-        if (newName && newName.trim()) {
-            APP.user.name = newName.trim();
-            saveAppData();
-            renderSettings();
-            alert('✅ Имя обновлено!');
-        }
-    });
-}
+                <!-- Профиль -->
+                <div class="settings-group">
+                    <div class="title">👤 Профиль</div>
+                    <div class="settings-row">
+                        <span class="label">Имя</span>
+                        <span id="settingsName" style="font-weight:600;">—</span>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" id="editProfileBtn" style="margin-top:8px;width:auto;">
+                        ✏️ Изменить имя
+                    </button>
+                </div>
 
-// Смена темы
-const themeSelect = document.getElementById('themeSelect');
-if (themeSelect) {
-    themeSelect.addEventListener('change', function() {
-        APP.settings.theme = this.value;
-        saveAppData();
-        document.body.classList.toggle('dark', this.value === 'dark');
-    });
-}
+                <!-- Внешний вид -->
+                <div class="settings-group">
+                    <div class="title">🎨 Внешний вид</div>
+                    <div class="settings-row">
+                        <span class="label">Тема</span>
+                        <select id="themeSelect">
+                            <option value="light">☀️ Светлая</option>
+                            <option value="dark">🌙 Тёмная</option>
+                        </select>
+                    </div>
+                </div>
 
-// Очистка кэша
-const clearCacheBtn = document.getElementById('clearCacheBtn');
-if (clearCacheBtn) {
-    clearCacheBtn.addEventListener('click', function() {
-        if (confirm('Очистить кэш? (Ваши викторины и результаты не удалятся)')) {
-            if ('caches' in window) {
-                caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
-            }
-            alert('✅ Кэш очищен');
-        }
-    });
-}
+                <!-- Данные -->
+                <div class="settings-group">
+                    <div class="title">📦 Данные</div>
+                    <div class="settings-row">
+                        <span class="label">Кэш (офлайн-данные)</span>
+                        <button class="btn btn-sm btn-secondary" id="clearCacheBtn">🗑️ Очистить</button>
+                    </div>
+                </div>
 
-// Запуск при загрузке страницы настроек
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('page-settings')) {
-        renderSettings();
-    }
-});
+                <!-- О приложении -->
+                <div class="settings-group">
+                    <div class="title">ℹ️ О приложении</div>
+                    <div class="settings-row">
+                        <span class="label">Версия</span>
+                        <span>1.0.0</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="label">MuQwiz 🎵</span>
+                        <span>Для музыкальных викторин</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Нижняя навигация -->
+        <div class="bottom-nav">
+            <a href="index.html"><span class="icon">📚</span> Библиотека</a>
+            <a href="prepare.html"><span class="icon">🎧</span> Подготовка</a>
+            <a href="quiz.html"><span class="icon">🎯</span> Викторина</a>
+            <a href="results.html"><span class="icon">📊</span> Результаты</a>
+            <a href="settings.html" class="active"><span class="icon">⚙️</span> Настройки</a>
+        </div>
+    </div>
+
+    <!-- Подключаем скрипт -->
+    <script src="js/app.js"></script>
+</body>
+</html>
