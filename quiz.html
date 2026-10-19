@@ -13,6 +13,7 @@
             <div class="page active" id="page-quiz">
                 <div class="page-title">🎯 Викторина</div>
 
+                <!-- ===== ЭКРАН НАСТРОЙКИ ===== -->
                 <div id="quizSetup">
                     <div class="card">
                         <div class="form-group">
@@ -21,13 +22,36 @@
                                 <option value="">— выбери викторину —</option>
                             </select>
                         </div>
+
+                        <div class="settings-row">
+                            <span>Количество вопросов</span>
+                            <input type="number" id="quizCount" value="10" min="1" max="100">
+                        </div>
+
+                        <label style="font-weight:600;display:block;margin:16px 0 10px;">Выберите уровень сложности:</label>
+                        <div class="level-buttons" id="levelButtons">
+                            <button class="level-btn selected" data-level="easy">
+                                <span class="level-name">🟢 Лёгкий</span>
+                                <span class="level-desc">4 варианта<br>⏱ 1:30<br>💡 3 подсказки</span>
+                            </button>
+                            <button class="level-btn" data-level="medium">
+                                <span class="level-name">🟡 Средний</span>
+                                <span class="level-desc">Вписать название<br>⏱ 1:00<br>💡 3 подсказки</span>
+                            </button>
+                            <button class="level-btn" data-level="hard">
+                                <span class="level-name">🔴 Сложный</span>
+                                <span class="level-desc">С середины<br>⏱ 0:45<br>💡 1 подсказка</span>
+                            </button>
+                        </div>
+
                         <button class="btn btn-primary" id="startQuizBtn">▶ Начать викторину</button>
                     </div>
                 </div>
 
+                <!-- ===== ИГРОВОЙ ЭКРАН ===== -->
                 <div id="gameScreen" class="hidden">
                     <div class="game-header">
-                        <span class="question-num" id="questionNum">Вопрос 1 из 20</span>
+                        <span class="question-num" id="questionNum">Вопрос 1 из 10</span>
                         <span class="timer" id="timerDisplay">1:30</span>
                     </div>
                     <div class="game-player">
@@ -35,18 +59,20 @@
                     </div>
                     <div id="gameQuestion"></div>
                     <div class="game-actions">
-                        <button class="btn btn-gold" id="hintBtn">💡 Подсказка</button>
+                        <button class="btn btn-gold" id="hintBtn">💡 Подсказка (3)</button>
                         <button class="btn btn-primary" id="submitBtn">✅ Ответить</button>
                     </div>
                     <div id="gameFeedback"></div>
                 </div>
 
+                <!-- ===== ЭКРАН РЕЗУЛЬТАТОВ ===== -->
                 <div id="finalScreen" class="hidden">
                     <div id="finalContent"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Нижняя навигация -->
         <div class="bottom-nav">
             <a href="index.html"><span class="icon">📚</span> Библиотека</a>
             <a href="prepare.html"><span class="icon">🎧</span> Подготовка</a>
