@@ -29,7 +29,6 @@ body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    /* ФИКС: Безопасная зона iPhone */
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
 }
@@ -46,7 +45,6 @@ body.dark {
 .app-container {
     max-width: 500px;
     margin: 0 auto;
-    /* ФИКС: Учитываем меню и безопасную зону */
     padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
@@ -160,7 +158,6 @@ body.dark {
     border-color: var(--accent);
 }
 
-/* ФИКС: Добавлен класс form-group, который потерялся */
 .form-group {
     margin-bottom: 16px;
 }
@@ -229,7 +226,6 @@ body.dark {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
-    /* ФИКС: Безопасная зона iPhone снизу */
     padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
     z-index: 100;
     backdrop-filter: blur(10px);
@@ -241,15 +237,16 @@ body.dark {
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    font-size: 11px;
-    font-weight: 500;
+    font-size:2 11px;
+    font-weight: px500;
     transition: 0.2s;
-    /* ФИКС: Небольшой отступ, чтобы не липло к краям */
-    padding: 0 4px;
+    padding;
+: 0 4px;
+}
 }
 .bottom-nav a .icon {
-    font-size: 24px;
-    line-height: 1.2;
+    font-size: 24px.;
+quiz    line-height: 1.2;
 }
 .bottom-nav a.active {
     color: var(--accent);
@@ -331,9 +328,7 @@ body.dark {
 .quiz-card .count {
     font-size: 13px;
     color: var(--text-secondary);
-    margin-top: 2px;
-}
-.quiz-card .heart {
+    margin-top: -card .heart {
     font-size: 26px;
     cursor: pointer;
     background: none;
@@ -627,7 +622,6 @@ body.dark {
 /* ============================================
    НАСТРОЙКИ (И ВИКТОРИНЫ, И ПРИЛОЖЕНИЯ)
    ============================================ */
-/* ФИКС: Вернул стили для блоков в настройках */
 .settings-group {
     background: var(--card);
     border-radius: var(--radius);
@@ -767,20 +761,19 @@ body.dark {
     color: #155724;
 }
 .game-options button.wrong {
-    border-color =: var(--red);
-    background: #f8d7da================================;
+    border-color: var(--red);
+    background: #f8d7da;
     color: #721c24;
 }
-.game-========options button.disabled {
-    pointer-events: none===;
+.game-options button.disabled {
+    pointer-events: none;
     opacity: 0.6;
 }
 
 .game-input {
- */
     width: 100%;
     padding: 14px;
-    border: 3px. solid var(--border);
+    border: 3px solid var(--border);
     border-radius: var(--radius-sm);
     font-size: 18px;
     text-align: center;
@@ -826,7 +819,8 @@ body.dark {
 
 /* ============================================
    МОДАЛЬНОЕ ОКНО ОТВЕТА
-  answer-modal-overlay {
+   ============================================ */
+.answer-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
