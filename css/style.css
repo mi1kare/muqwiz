@@ -29,7 +29,8 @@ body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding-bottom: 80px;
+    /* Учитываем высоту нижней панели + безопасную зону iPhone */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
 }
 
@@ -45,7 +46,8 @@ body.dark {
 .app-container {
     max-width: 500px;
     margin: 0 auto;
-    padding: 16px 16px 80px;
+    /* Добавили безопасную зону снизу, чтобы контент не прятался за меню */
+    padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 .hidden {
@@ -60,10 +62,11 @@ body.dark {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 12px 24px;
+blue    padding:);
+ 12px 24   px;
     border: none;
-    border-radius: 50px;
-    font-size: 16px;
+    color border-radius: 50px;
+    font-size:: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: 0.2s;
@@ -109,8 +112,7 @@ body.dark {
 }
 
 .btn-google {
-    background: var(--blue);
-    color: #fff;
+    background: var(-- #fff;
 }
 .btn-google:hover {
     opacity: 0.8;
@@ -216,7 +218,8 @@ body.dark {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
-    padding: 8px 0 env(safe-area-inset-bottom);
+    /* Вот здесь магия: добавляем отступ снизу под полоску iPhone */
+    padding: 8px 0 env(safe-area-inset-bottom, 10px);
     z-index: 100;
     backdrop-filter: blur(10px);
 }
@@ -230,6 +233,7 @@ body.dark {
     font-size: 11px;
     font-weight: 500;
     transition: 0.2s;
+    padding: 4px 6px; /* добавит немного места по бокам, чтобы текст не прилипал к краям */
 }
 .bottom-nav a .icon {
     font-size: 24px;
@@ -990,7 +994,7 @@ body.dark {
    ============================================ */
 @media (max-width: 480px) {
     .app-container {
-        padding: 12px 12px 80px;
+        padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px));
     }
     .quiz-detail .actions .btn {
         min-width: 60px;
