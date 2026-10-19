@@ -54,10 +54,93 @@ if (typeof supabase !== 'undefined') {
 }
 
 // ============================================
-// ===== GOOGLE DRIVE API =====
+// ===== GOOGLE DRIVE API + OAUTH =====
 // ============================================
 const GOOGLE_API_KEY = 'AIzaSyCM_2vu-v0bkN_EAm5lQpK-fYnI_SXzGik';
+const GOOGLE_CLIENT_ID = '544647807725-kdems4gglcv3p9gfnj780lo7rlulohl5.apps.googleusercontent.com'; // ← ЗАМЕНИТЕ
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
+let tokenClient = null;
+let accessToken = null;
+let tokenExpiresAt = 0;
+
+/**
+ * Инициализация клиента OAuth (Google Identity Services).
+ * Вызывается один раз при загрузке страницы.
+ */
+function initGoogleAuth() {
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+        console.warn('⚠️ Google Identity Services не загружен. Подключите <script src="https://accounts.google.com/gsi/client" async defer></script>');
+        return;
+    }
+
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_SCOPE,
+        callback: (resp) => {
+            if (resp && resp.access_token) {
+                accessToken = resp.access_token;
+                // expires_in в секундах; вычитаем 60 сек на запас
+                tokenExpiresAt = Date.now() + (resp.expires_in ? (resp.expires_in - 60) * 1000 : 55 * 60 * 1000);
+                console.log('✅ Access token получен, действует до', new Date(tokenExpiresAt).toLocaleTimeString());
+                updateGoogleAuthUI();
+            } else {
+                console.error('Ошибка OAuth:', resp);
+                alert('Не удалось получить доступ к Google Drive. Попробуйте снова.');
+            }
+        },
+    });
+    updateGoogleAuthUI();
+}
+
+/**
+ * Запрос токена. Должен вызываться по клику пользователя.
+ * Если токен ещё жив — не перезапрашиваем.
+ */
+function authorizeGoogle() {
+    if (accessToken && Date.now() < tokenExpiresAt) {
+        alert('✅ Вы уже авторизованы в Google.');
+        return;
+    }
+    if (!tokenClient) {
+        alert('Google OAuth не инициализирован. Проверьте, что подключён скрипт gsi/client и указан Client ID.');
+        return;
+    }
+    tokenClient.requestAccessToken();
+}
+
+/**
+ * Проверка: есть ли действующий токен.
+ */
+function hasValidToken() {
+    return !!accessToken && Date.now() < tokenExpiresAt;
+}
+
+/**
+ * Обновляет визуальное состояние кнопки авторизации (если она есть в HTML).
+ */
+function updateGoogleAuthUI() {
+    const btn = document.getElementById('googleAuthBtn');
+    const status = document.getElementById('googleAuthStatus');
+    const ok = hasValidToken();
+    if (btn) {
+        btn.textContent = ok ? '✅ Google подключён' : '🔑 Войти через Google';
+        btn.classList.toggle('btn-secondary', !ok);
+        btn.classList.toggle('btn-primary', ok);
+    }
+    if (status) {
+        status.textContent = ok
+            ? `Доступ к Drive активен`
+            : 'Для скачивания с Google Drive нужна авторизация';
+        status.style.color = ok ? 'green' : 'var(--text-secondary)';
+    }
+}
+
+/**
+ * Сканирование папки Google Drive (метаданные).
+ * Использует API-ключ — этого достаточно для публичных файлов.
+ * Если папка приватная — нужен токен; на этот случай тоже поддерживаем.
+ */
 async function scanGoogleDrive(folderLink) {
     const matches = folderLink.match(/\/(?:folders|d)\/([a-zA-Z0-9_-]+)/g);
     if (!matches || matches.length === 0) throw new Error('Не удалось найти ID папки');
@@ -68,18 +151,29 @@ async function scanGoogleDrive(folderLink) {
     for (const folderId of folderIds) {
         const url = new URL('https://www.googleapis.com/drive/v3/files');
         url.searchParams.append('q', `'${folderId}' in parents and trashed = false`);
-        url.searchParams.append('key', GOOGLE_API_KEY);
         url.searchParams.append('fields', 'files(id,name,mimeType)');
         url.searchParams.append('supportsAllDrives', 'true');
         url.searchParams.append('includeItemsFromAllDrives', 'true');
+        // ключ — для публичных файлов; если есть токен — используем его
+        if (!hasValidToken()) url.searchParams.append('key', GOOGLE_API_KEY);
 
-        const response = await fetch(url.toString());
-        if (response.ok) {
-            const data = await response.json();
-            if (data.files && data.files.length > 0) {
-                allFiles = data.files;
-                break;
+        const headers = {};
+        if (hasValidToken()) headers['Authorization'] = `Bearer ${accessToken}`;
+
+        const response = await fetch(url.toString(), { headers });
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Google-токен истёк. Войдите через Google заново.');
             }
+            if (response.status === 403) {
+                throw new Error('Доступ к папке запрещён. Проверьте, что папка доступна по ссылке, или войдите через Google.');
+            }
+            throw new Error(`Drive API: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.files && data.files.length > 0) {
+            allFiles = data.files;
+            break;
         }
     }
 
@@ -91,19 +185,39 @@ async function scanGoogleDrive(folderLink) {
 }
 
 /**
- * Скачивает файл с Google Drive через прокси и возвращает Blob.
- * Проверяет, что вернулся именно файл, а не HTML-страница подтверждения.
+ * Скачивание файла с Google Drive через официальный API (alt=media).
+ * Требует access_token. Возвращает Blob.
  */
-async function downloadGDriveFile(fileId, title) {
-    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
+async function downloadFromDrive(fileId, title) {
+    if (!hasValidToken()) {
+        throw new Error('Нет действующего Google-токена. Нажмите «Войти через Google» и попробуйте снова.');
+    }
 
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status} при скачивании «${title}»`);
+    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
+
+    const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            accessToken = null;
+            tokenExpiresAt = 0;
+            updateGoogleAuthUI();
+            throw new Error('Google-токен истёк. Войдите через Google заново.');
+        }
+        if (response.status === 403) {
+            throw new Error(`Доступ к «${title}» запрещён. Убедитесь, что файл доступен вашей учётной записи.`);
+        }
+        if (response.status === 404) {
+            throw new Error(`Файл «${title}» не найден на Google Drive.`);
+        }
+        throw new Error(`Drive API: ${response.status} ${response.statusText} (файл «${title}»)`);
+    }
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/html')) {
-        throw new Error(`Google Drive вернул HTML вместо файла «${title}». Скорее всего, файл приватный или слишком большой.`);
+        throw new Error(`Google вернул HTML вместо файла «${title}». Скорее всего, файл приватный или превышен лимит скачивания.`);
     }
 
     const blob = await response.blob();
@@ -124,7 +238,6 @@ function loadAppData() {
         if (raw) {
             const parsed = JSON.parse(raw);
             Object.assign(APP, parsed);
-            // гарантируем структуру
             APP.user = APP.user || { name: '' };
             APP.library = Array.isArray(APP.library) ? APP.library : [];
             APP.results = Array.isArray(APP.results) ? APP.results : [];
@@ -184,7 +297,6 @@ function renderLibrary() {
     container.classList.remove('hidden');
     if (sharedTab) sharedTab.classList.add('hidden');
 
-    // Всегда возвращаем кнопку «Добавить» в нормальное состояние
     if (showAddBtn) {
         showAddBtn.classList.remove('hidden');
         showAddBtn.textContent = (addForm && !addForm.classList.contains('hidden'))
@@ -414,6 +526,8 @@ function initAddForm() {
         showAddBtn.textContent = addForm.classList.contains('hidden')
             ? '➕ Добавить викторину'
             : '✖ Закрыть';
+        // при открытии формы обновляем состояние OAuth
+        if (!addForm.classList.contains('hidden')) updateGoogleAuthUI();
     });
 
     if (cancelAddBtn) {
@@ -434,8 +548,20 @@ function initAddForm() {
             gdriveDiv.classList.add('hidden');
             manualDiv.classList.add('hidden');
             if (this.value === 'files') fileDiv.classList.remove('hidden');
-            if (this.value === 'gdrive') gdriveDiv.classList.remove('hidden');
+            if (this.value === 'gdrive') {
+                gdriveDiv.classList.remove('hidden');
+                updateGoogleAuthUI();
+            }
             if (this.value === 'manual') manualDiv.classList.remove('hidden');
+        });
+    }
+
+    // Кнопка «Войти через Google»
+    const googleAuthBtn = document.getElementById('googleAuthBtn');
+    if (googleAuthBtn) {
+        googleAuthBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            authorizeGoogle();
         });
     }
 
@@ -495,7 +621,7 @@ function initAddForm() {
                     return;
                 }
                 if (!db) {
-                    alert('Облако недоступно — загрузка файлов невозможна. Включите Supabase.');
+                    alert('Облако недоступно — загрузка файлов невозможна.');
                     return;
                 }
                 for (let i = 0; i < files.length; i++) {
@@ -519,7 +645,11 @@ function initAddForm() {
                     return;
                 }
                 if (!db) {
-                    alert('Облако недоступно — загрузка с Google Drive невозможна.');
+                    alert('Облако недоступно — загрузка с Google Drive невозможна (нужен Supabase Storage).');
+                    return;
+                }
+                if (!hasValidToken()) {
+                    alert('Сначала войдите через Google (кнопка «Войти через Google»).');
                     return;
                 }
 
@@ -527,12 +657,14 @@ function initAddForm() {
 
                 for (let i = 0; i < window.scannedGdriveTracks.length; i++) {
                     const gFile = window.scannedGdriveTracks[i];
-
                     saveBtn.textContent = `⏳ Скачиваем ${i + 1}/${window.scannedGdriveTracks.length}...`;
 
-                    const blob = await downloadGDriveFile(gFile.id, gFile.title);
+                    const blob = await downloadFromDrive(gFile.id, gFile.title);
                     const fileName = `gdrive_${Date.now()}_${i}.mp3`;
-                    const { error: uploadError } = await db.storage.from('music').upload(fileName, blob);
+                    const { error: uploadError } = await db.storage.from('music').upload(fileName, blob, {
+                        contentType: 'audio/mpeg',
+                        upsert: false
+                    });
                     if (uploadError) throw uploadError;
 
                     const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
@@ -619,7 +751,6 @@ function initSharedLoader() {
 
             if (data) {
                 const newQuiz = { id: 'cloud_' + data.id, name: data.name, tracks: data.tracks || [] };
-                // избегаем дубликата по id
                 if (!APP.library.some(q => q.id === newQuiz.id)) {
                     APP.library.push(newQuiz);
                     saveAppData();
@@ -683,7 +814,6 @@ function renderPrepareTracks(quiz) {
         `;
     }).join('');
 
-    // Сохраняем заметки по вводу (с дебаунсом), чтобы не терять данные при перерисовке
     const saveNote = debounce(function (key, value) {
         APP.notes[key] = value;
         saveAppData();
@@ -693,7 +823,6 @@ function renderPrepareTracks(quiz) {
         inp.addEventListener('input', function () {
             saveNote(this.dataset.key, this.value);
         });
-        // На случай ухода с поля — сохраняем сразу
         inp.addEventListener('blur', function () {
             APP.notes[this.dataset.key] = this.value;
             saveAppData();
@@ -704,8 +833,6 @@ function renderPrepareTracks(quiz) {
 function playPrepareTrack(quiz, index) {
     if (!quiz || !quiz.tracks || quiz.tracks.length === 0) return;
 
-    // Перед перерисовкой сохраняем текущие значения из полей заметок,
-    // чтобы ввод не потерялся
     const container = document.getElementById('trackListPrepare');
     if (container) {
         container.querySelectorAll('.note-input').forEach(inp => {
@@ -1290,13 +1417,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAppData();
     applyTheme();
 
-    // Общие обработчики
+    initGoogleAuth();
     initOnboarding();
     initLibraryTabs();
     initAddForm();
     initSharedLoader();
 
-    // Страницы
     if (document.getElementById('page-library')) {
         checkOnboarding();
         if (APP.user.name) renderLibrary();
