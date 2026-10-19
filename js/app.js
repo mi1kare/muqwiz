@@ -203,16 +203,16 @@ async function refreshSingleQuiz(quizId) {
     if (!quizId.startsWith('cloud_')) { alert('Эта викторина не сохранена в облаке'); return; }
 
     const cleanId = quizId.replace('cloud_', '');
-    const btn = event.target;
-    const originalText = btn.textContent;
-    btn.textContent = '⏳';
-    btn.disabled = true;
+    // Находим кнопку, чтобы показать загрузку (если вызвано из события)
+    const btn = event ? event.target : null;
+    const originalText = btn ? btn.textContent : '🔄';
+    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
     try {
         const { data, error } = await db.from('quizzes').select('*').eq('id', cleanId).single();
         
         if (error) {
-            if (error.code === 'PGRST116') { // Не найдено
+            if (error.code === 'PGRST116') {
                 if (confirm('Викторина была удалена из облака. Удалить её с устройства?')) {
                     APP.library = APP.library.filter(q => q.id !== quizId);
                     APP.favorites = APP.favorites.filter(id => id !== quizId);
@@ -226,7 +226,6 @@ async function refreshSingleQuiz(quizId) {
         }
 
         if (data) {
-            // Обновляем локальную копию, сохраняя заметки (они хранятся отдельно в APP.notes)
             const localQuiz = APP.library.find(q => q.id === quizId);
             if (localQuiz) {
                 localQuiz.name = data.name;
@@ -240,8 +239,7 @@ async function refreshSingleQuiz(quizId) {
         console.error(err);
         alert('Ошибка обновления: ' + err.message);
     } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
+        if (btn) { btn.textContent = originalText; btn.disabled = false; }
     }
 }
 
@@ -316,7 +314,7 @@ function showQuizDetail(quizId) {
         }
     });
 
-    // Кнопка "Редактировать" (с проверкой ключа)
+    // Редактирование (с проверкой ключа)
     document.getElementById('detailEdit').addEventListener('click', async () => {
         if (!secretKey && quizId.startsWith('cloud_')) {
             alert('Вы не можете редактировать эту викторину, так как она создана на другом устройстве.');
@@ -352,13 +350,12 @@ function showQuizDetail(quizId) {
         }
     });
 
-    // Кнопка "Удалить" (с выбором: только с устройства или из облака)
+    // Удаление (с выбором)
     document.getElementById('detailDelete').addEventListener('click', async () => {
         if (secretKey && quizId.startsWith('cloud_')) {
             const choice = confirm('Удалить викторину и из облака? Нажмите OK для удаления из базы (и с устройства), или Отмена чтобы удалить только с устройства.');
             
             if (choice) {
-                // Удаляем из базы
                 const cleanId = quizId.replace('cloud_', '');
                 try {
                     const { error } = await db
@@ -378,7 +375,6 @@ function showQuizDetail(quizId) {
             if (!confirm(`Удалить викторину "${quiz.name}" с этого устройства? (Из базы она не удалится)`)) return;
         }
 
-        // Удаляем локально в любом случае (если дошли до сюда)
         APP.library = APP.library.filter(q => q.id !== quizId);
         APP.favorites = APP.favorites.filter(id => id !== quizId);
         saveAppData();
@@ -533,7 +529,6 @@ if (showAddBtn && addForm) {
                 }));
             }
 
-            // Генерируем секретный ключ
             const secretKey = 'key_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('owner_' + name, secretKey);
 
@@ -665,6 +660,50 @@ if (loadSharedBtn) {
 }
 
 // ============================================
+// ===== ПОДГОТОВКА (Заполнение списка) =====
+// ============================================
+function renderPrepareSelect() {
+    const select = document.getElementById('prepareSelect');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">— выбери викторину —</option>';
+    APP.library.forEach(q => {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = `${q.name} (${q.tracks.length})`;
+        select.appendChild(opt);
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
+    if (urlId && APP.library.some(q => q.id === urlId)) {
+        select.value = urlId;
+    }
+}
+
+// ============================================
+// ===== ВИКТОРИНА (Заполнение списка) =====
+// ============================================
+function renderQuizSelect() {
+    const select = document.getElementById('quizSelect');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">— выбери викторину —</option>';
+    APP.library.forEach(q => {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = `${q.name} (${q.tracks.length})`;
+        select.appendChild(opt);
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
+    if (urlId && APP.library.some(q => q.id === urlId)) {
+        select.value = urlId;
+    }
+}
+
+// ============================================
 // ===== ЗАПУСК =====
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -675,6 +714,26 @@ document.addEventListener('DOMContentLoaded', () => {
         checkOnboarding();
         if (APP.user.name) renderLibrary();
     }
+
+    if (document.getElementById('page-prepare')) {
+        renderPrepareSelect();
+    }
+
+    if (document.getElementById('page-quiz')) {
+        renderQuizSelect();
+    }
+
+    if (document.getElementById('page-results')) {
+        renderResults();
+    }
+
+    if (document.getElementById('page-settings')) {
+        renderSettings();
+    }
 });
+
+// Заглушки для функций, которые мы пока не используем на этих страницах
+function renderResults() { /* Логика будет добавлена позже */ }
+function renderSettings() { /* Логика будет добавлена позже */ }
 
 console.log('🎵 MuQwiz загружен!');
