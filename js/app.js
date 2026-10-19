@@ -35,40 +35,35 @@ if (typeof supabase !== 'undefined') {
 const GOOGLE_API_KEY = 'AIzaSyCM_2vu-v0bkN_EAm5lQpK-fYnI_SXzGik';
 
 async function scanGoogleDrive(folderLink) {
-    // 1. Извлекаем ID папки (берем последний набор букв/цифр из ссылки)
     const matches = folderLink.match(/\/(?:folders|d)\/([a-zA-Z0-9_-]+)/g);
-    if (!matches || matches.length === 0) {
-        throw new Error('Не удалось найти ID папки в ссылке. Убедитесь, что это ссылка на папку Google Диска.');
-    }
-    const lastMatch = matches[matches.length - 1];
-    const folderId = lastMatch.replace(/\/(?:folders|d)\//, '');
-
-    // 2. Собираем URL строго по документации
-    const baseUrl = 'https://www.googleapis.com/drive/v3/files';
-    const query = `'${folderId}' in parents and trashed = false`;
+    if (!matches || matches.length === 0) throw new Error('Не удалось найти ID папки');
     
-    const url = new URL(baseUrl);
-    url.searchParams.append('q', query);
-    url.searchParams.append('key', GOOGLE_API_KEY);
-    url.searchParams.append('fields', 'files(id,name,mimeType)');
-    url.searchParams.append('supportsAllDrives', 'true');
-    url.searchParams.append('includeItemsFromAllDrives', 'true');
+    const folderIds = matches.map(m => m.replace(/\/(?:folders|d)\//, ''));
+    let allFiles = [];
 
-    console.log('🔍 Отправляем запрос:', url.toString());
+    for (const folderId of folderIds) {
+        const url = new URL('https://www.googleapis.com/drive/v3/files');
+        url.searchParams.append('q', `'${folderId}' in parents and trashed = false`);
+        url.searchParams.append('key', GOOGLE_API_KEY);
+        url.searchParams.append('fields', 'files(id,name,mimeType)');
+        url.searchParams.append('supportsAllDrives', 'true');
+        url.searchParams.append('includeItemsFromAllDrives', 'true');
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Ответ Google:', errorData);
-        // Показываем пользователю настоящую причину от Google
-        throw new Error(`Google API: ${errorData.error?.message || 'Неизвестная ошибка'}`);
+        const response = await fetch(url.toString());
+        if (response.ok) {
+            const data = await response.json();
+            if (data.files && data.files.length > 0) {
+                allFiles = data.files;
+                break;
+            }
+        }
     }
 
-    const data = await response.json();
-    const files = data.files || [];
-    return files.filter(f => f.name.toLowerCase().endsWith('.mp3')).map(f => ({
-        title: f.name.replace(/\.mp3$/i, ''),
-        file: `https://drive.google.com/uc?export=download&id=${f.id}`
+    // Возвращаем ID и имена файлов (без прямых ссылок)
+    const mp3Files = allFiles.filter(f => f.name.toLowerCase().endsWith('.mp3'));
+    return mp3Files.map(f => ({
+        id: f.id,
+        title: f.name.replace(/\.mp3$/i, '')
     }));
 }
 // ============================================
@@ -446,15 +441,42 @@ if (!urlData || !urlData.publicUrl) {
 }
 tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
                 }
-            } else if (method === 'gdrive') {
-                if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) { alert('Сначала сканируйте папку'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
-                tracks = window.scannedGdriveTracks;
-            } else {
-                const filesText = document.getElementById('trackFiles').value.trim();
-                if (!filesText) { alert('Введите ссылки'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
-                tracks = filesText.split('\n').map((url, i) => ({ title: `Трек ${i + 1}`, file: url.trim() }));
+                        } else if (method === 'gdrive') {
+                if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) { 
+                    alert('Сначала сканируйте папку'); 
+                    saveBtn.textContent = '💾 Сохранить'; 
+                    saveBtn.disabled = false; 
+                    return; 
+                }
+                
+                saveBtn.textContent = '⏳ Скачиваем с Google Диска...';
+                
+                // Проходим по каждому файлу с Google Диска
+                for (let i = 0; i < window.scannedGdriveTracks.length; i++) {
+                    const gFile = window.scannedGdriveTracks[i];
+                    
+                    // 1. Скачиваем файл через прокси (чтобы обойти блокировку)
+                    const downloadUrl = `https://drive.google.com/uc?export=download&id=${gFile.id}`;
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
+                    
+                    const fileResponse = await fetch(proxyUrl);
+                    if (!fileResponse.ok) throw new Error(`Не удалось скачать ${gFile.title}`);
+                    const blob = await fileResponse.blob();
+                    
+                    // 2. Загружаем этот файл в Supabase
+                    const fileName = `gdrive_${Date.now()}_${i}.mp3`;
+                    const { error: uploadError } = await db.storage.from('music').upload(fileName, blob);
+                    if (uploadError) throw uploadError;
+                    
+                    // 3. Получаем ссылку на Supabase
+                    const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
+                    
+                    tracks.push({ 
+                        title: gFile.title, 
+                        file: urlData.publicUrl 
+                    });
+                }
             }
-
             const newQuiz = { id: 'local_' + Date.now(), name: name, tracks: tracks };
             APP.library.push(newQuiz);
             saveAppData();
