@@ -459,10 +459,15 @@ if (prepSelect) {
         prepareShuffle = false;
         const quiz = APP.library.find(q => q.id === quizId);
         if (!quiz) return;
+        
         renderPrepareTracks(quiz);
         playPrepareTrack(quiz, 0);
-        document.getElementById('gotoQuizBtn').style.display = 'block';
-        document.getElementById('gotoQuizBtn').dataset.quizId = quizId;
+        
+        const gotoBtn = document.getElementById('gotoQuizBtn');
+        if (gotoBtn) {
+            gotoBtn.style.display = 'block';
+            gotoBtn.dataset.quizId = quizId;
+        }
     });
 }
 
@@ -473,19 +478,24 @@ function renderPrepareTracks(quiz) {
         container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">Нет треков</div>';
         return;
     }
+
+    // Отрисовываем треки с полями для заметок
     container.innerHTML = quiz.tracks.map((t, i) => {
         const noteKey = quiz.id + '_' + i;
-        const note = APP.notes[noteKey] || '';
+        const savedNote = APP.notes[noteKey] || '';
+        
         return `
             <div class="item" style="padding:10px 0; border-bottom:1px solid var(--border); ${i === prepareTrackIndex ? 'background:var(--border); border-radius:8px;' : ''}">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                     <span style="flex:1; font-weight:500;">${i+1}. ${t.title}</span>
-                    <input type="text" class="note-input" data-key="${noteKey}" placeholder="Заметка..." value="${note}" style="width:120px; padding:4px 8px; border-radius:20px; border:1px solid var(--border);">
+                    <input type="text" class="note-input" data-key="${noteKey}" placeholder="Заметка..." value="${savedNote}" style="width:120px; padding:4px 8px; border-radius:20px; border:1px solid var(--border);">
                     <button class="btn btn-sm btn-secondary" onclick="playPrepareTrackById('${quiz.id}', ${i})">▶</button>
                 </div>
             </div>
         `;
     }).join('');
+
+    // Сохраняем заметки при изменении
     container.querySelectorAll('.note-input').forEach(inp => {
         inp.addEventListener('change', function() {
             APP.notes[this.dataset.key] = this.value;
@@ -496,14 +506,20 @@ function renderPrepareTracks(quiz) {
 
 function playPrepareTrack(quiz, index) {
     if (!quiz || !quiz.tracks || quiz.tracks.length === 0) return;
+    
     if (prepareShuffle) {
         prepareTrackIndex = Math.floor(Math.random() * quiz.tracks.length);
     } else {
         prepareTrackIndex = index % quiz.tracks.length;
     }
+
     const track = quiz.tracks[prepareTrackIndex];
     const audio = document.getElementById('playerAudio');
-    if (audio) { audio.src = track.file; audio.load(); audio.play().catch(() => {}); }
+    if (audio) { 
+        audio.src = track.file; 
+        audio.load(); 
+        audio.play().catch(() => {}); 
+    }
     renderPrepareTracks(quiz);
 }
 
@@ -519,6 +535,7 @@ if (playPrev) {
         if (quiz) playPrepareTrack(quiz, prepareTrackIndex - 1);
     });
 }
+
 const playNext = document.getElementById('playNext');
 if (playNext) {
     playNext.addEventListener('click', () => {
@@ -526,6 +543,7 @@ if (playNext) {
         if (quiz) playPrepareTrack(quiz, prepareTrackIndex + 1);
     });
 }
+
 const playShuffle = document.getElementById('playShuffle');
 if (playShuffle) {
     playShuffle.addEventListener('click', function() {
@@ -542,7 +560,6 @@ if (gotoQuizBtn) {
         if (this.dataset.quizId) window.location.href = 'quiz.html?id=' + this.dataset.quizId;
     });
 }
-
 // ============================================
 // ===== ВИКТОРИНА =====
 // ============================================
