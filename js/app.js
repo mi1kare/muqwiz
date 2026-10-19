@@ -35,24 +35,33 @@ if (typeof supabase !== 'undefined') {
 const GOOGLE_API_KEY = 'AIzaSyAKtOvwvOQ0BsGy4vFi_HmSN6U33WcWcbE';
 
 async function scanGoogleDrive(folderLink) {
-    let folderId = null;
-    const match = folderLink.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-    if (match) folderId = match[1];
-    else {
-        const match2 = folderLink.match(/id=([a-zA-Z0-9_-]+)/);
-        if (match2) folderId = match2[1];
+    // 1. Извлекаем ID папки (берем последний набор букв/цифр из ссылки)
+    const matches = folderLink.match(/\/(?:folders|d)\/([a-zA-Z0-9_-]+)/g);
+    if (!matches || matches.length === 0) {
+        throw new Error('Не удалось найти ID папки в ссылке. Убедитесь, что это ссылка на папку Google Диска.');
     }
-    if (!folderId) throw new Error('Не удалось извлечь ID папки');
+    const lastMatch = matches[matches.length - 1];
+    const folderId = lastMatch.replace(/\/(?:folders|d)\//, '');
 
-    // Формируем правильный запрос: ID папки должен быть в одинарных кавычках
-    const q = `'${folderId}' in parents and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${GOOGLE_API_KEY}&fields=files(id,name,mimeType)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+    // 2. Собираем URL строго по документации
+    const baseUrl = 'https://www.googleapis.com/drive/v3/files';
+    const query = `'${folderId}' in parents and trashed = false`;
+    
+    const url = new URL(baseUrl);
+    url.searchParams.append('q', query);
+    url.searchParams.append('key', GOOGLE_API_KEY);
+    url.searchParams.append('fields', 'files(id,name,mimeType)');
+    url.searchParams.append('supportsAllDrives', 'true');
+    url.searchParams.append('includeItemsFromAllDrives', 'true');
 
-    const response = await fetch(url);
+    console.log('🔍 Отправляем запрос:', url.toString());
+
+    const response = await fetch(url.toString());
     if (!response.ok) {
         const errorData = await response.json();
-        console.error('Google API Error:', errorData);
-        throw new Error(`Ошибка API Google: ${errorData.error?.message || response.status}`);
+        console.error('❌ Ответ Google:', errorData);
+        // Показываем пользователю настоящую причину от Google
+        throw new Error(`Google API: ${errorData.error?.message || 'Неизвестная ошибка'}`);
     }
 
     const data = await response.json();
