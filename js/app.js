@@ -712,13 +712,30 @@ function showQuestion() {
     if (Q.timer) clearInterval(Q.timer);
     Q.timer = setInterval(timerTick, 1000);
 
-    const audio = document.getElementById('gameAudio');
+        const audio = document.getElementById('gameAudio');
     audio.src = q.file;
     audio.load();
+
+    // Убираем старый обработчик, чтобы он не срабатывал дважды
+    audio.oncanplay = null;
+
+    // Флаг, чтобы перемотка сработала только 1 раз
+    let seekDone = false; 
+
     audio.oncanplay = function() {
-        if (!Q.fromStart && audio.duration > 10) {
+        // Если мы уже перематывали для этого трека — ничего не делаем
+        if (seekDone) {
+            audio.play().catch(() => {});
+            return;
+        }
+
+        if (!Q.fromStart && audio.duration > 10 && !seekDone) {
+            seekDone = true; // Ставим флаг
+            // Перематываем один раз
             audio.currentTime = audio.duration * (0.3 + Math.random() * 0.4);
         }
+        
+        // Включаем воспроизведение
         audio.play().catch(() => {});
     };
 
