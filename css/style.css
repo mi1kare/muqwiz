@@ -29,8 +29,8 @@ body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    /* Учитываем высоту нижней панели + безопасную зону iPhone */
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    /* Безопасный отступ снизу для iPhone */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     min-height: 100vh;
 }
 
@@ -46,8 +46,8 @@ body.dark {
 .app-container {
     max-width: 500px;
     margin: 0 auto;
-    /* Добавили безопасную зону снизу, чтобы контент не прятался за меню */
-    padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
+    /* Основной отступ снизу, чтобы контент не прятался за меню */
+    padding: 16px 16px calc(90px + env(safe-area-inset-bottom, 0px));
 }
 
 .hidden {
@@ -62,11 +62,10 @@ body.dark {
     align-items: center;
     justify-content: center;
     gap: 8px;
-blue    padding:);
- 12px 24   px;
+    padding: 12px 24px;
     border: none;
-    color border-radius: 50px;
-    font-size:: 16px;
+    border-radius: 50px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: 0.2s;
@@ -112,7 +111,8 @@ blue    padding:);
 }
 
 .btn-google {
-    background: var(-- #fff;
+    background: var(--blue);
+    color: #fff;
 }
 .btn-google:hover {
     opacity: 0.8;
@@ -207,7 +207,7 @@ blue    padding:);
 }
 
 /* ============================================
-   НИЖНЯЯ ПАНЕЛЬ
+   НИЖНЯЯ ПАНЕЛЬ (ИСПРАВЛЕНО ДЛЯ IPHONE)
    ============================================ */
 .bottom-nav {
     position: fixed;
@@ -218,11 +218,16 @@ blue    padding:);
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
-    /* Вот здесь магия: добавляем отступ снизу под полоску iPhone */
-    padding: 8px 0 env(safe-area-inset-bottom, 10px);
+    align-items: center;
+    /* Добавлен padding-bottom для безопасной зоны iPhone */
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
     z-index: 100;
+    /* Убирает прозрачность, если backdrop-filter не поддерживается */
+    background-color: var(--card);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
+
 .bottom-nav a {
     text-decoration: none;
     color: var(--text-secondary);
@@ -233,12 +238,15 @@ blue    padding:);
     font-size: 11px;
     font-weight: 500;
     transition: 0.2s;
-    padding: 4px 6px; /* добавит немного места по бокам, чтобы текст не прилипал к краям */
+    /* Немного отступа по бокам, чтобы слова не липли к краям */
+    padding: 0 4px;
 }
+
 .bottom-nav a .icon {
     font-size: 24px;
     line-height: 1.2;
 }
+
 .bottom-nav a.active {
     color: var(--accent);
 }
@@ -450,19 +458,19 @@ blue    padding:);
 .edit-track-item .edit-track-title {
     flex: 1;
     padding: 8px 12px;
-    border: 2px solid var(--border);
+    border: 2px solid(-- var(--border);
     border-radius: var(--radius-sm);
     font-size: 15px;
     background: var(--bg);
-    color: var(--text);
-    transition: 0.2s;
+ac    color: var(--centtext);
+    transition: 0.);
+2s;
     min-width: 0;
 }
-.edit-track-item .edit-track-title:focus {
-    outline: none;
-    border-color: var(--accent);
 }
-.edit-track-item .btn-sm {
+.edit-track-item .edit-track-title.edit:focus {
+    outline: none;
+    border-color: var-track-item .btn-sm {
     flex-shrink: 0;
 }
 
@@ -994,7 +1002,7 @@ blue    padding:);
    ============================================ */
 @media (max-width: 480px) {
     .app-container {
-        padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px));
+        padding: 12px 12px calc(90px + env(safe-area-inset-bottom, 0px));
     }
     .quiz-detail .actions .btn {
         min-width: 60px;
