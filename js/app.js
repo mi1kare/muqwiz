@@ -241,15 +241,89 @@ window.shareQuiz = function(quizId) {
 window.editQuizName = function(quizId) {
     const quiz = APP.library.find(q => q.id === quizId);
     if (!quiz) return;
-    const newName = prompt('Новое название:', quiz.name);
-    if (newName && newName.trim()) {
-        quiz.name = newName.trim();
+
+    const container = document.getElementById('libraryContent');
+    
+    // Отрисовываем интерфейс редактора
+    container.innerHTML = `
+        <div class="quiz-detail">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span style="font-size:20px;font-weight:700;">✏️ Редактировать викторину</span>
+                <button class="btn btn-sm btn-secondary" onclick="showQuizDetail('${quizId}')">✖ Закрыть</button>
+            </div>
+
+            <div class="form-group">
+                <label>Название викторины</label>
+                <input type="text" class="input-field" id="editorQuizName" value="${quiz.name}">
+            </div>
+
+            <div style="margin:12px 0;font-weight:600;">Треки (${quiz.tracks.length})</div>
+            <div id="editorTrackList">
+                ${quiz.tracks.map((t, i) => `
+                    <div class="edit-track-item" style="display:flex; gap:10px; margin-bottom:8px;">
+                        <input type="text" class="input-field track-title-edit" data-index="${i}" value="${t.title}" style="flex:1; padding:8px 12px;">
+                        <button class="btn btn-sm btn-danger remove-track-btn" data-index="${i}">✖</button>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div style="margin-top:16px;">
+                <button class="btn btn-primary" id="editorSaveBtn">💾 Сохранить</button>
+                <button class="btn btn-secondary" onclick="showQuizDetail('${quizId}')" style="margin-top:8px;">Отмена</button>
+            </div>
+        </div>
+    `;
+
+    // Обработчик удаления трека
+    container.querySelectorAll('.remove-track-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.index);
+            if (confirm(`Удалить трек "${quiz.tracks[idx].title}"?`)) {
+                quiz.tracks.splice(idx, 1);
+                saveAppData();
+                window.editQuizName(quizId); // Перерисовываем редактор
+            }
+        });
+    });
+
+    // Обработчик сохранения изменений
+    document.getElementById('editorSaveBtn').addEventListener('click', async function() {
+        const newName = document.getElementById('editorQuizName').value.trim();
+        if (!newName) { alert('Введите название викторины'); return; }
+
+        // Собираем новые названия треков из полей
+        const titleInputs = container.querySelectorAll('.track-title-edit');
+        titleInputs.forEach(inp => {
+            const idx = parseInt(inp.dataset.index);
+            if (quiz.tracks[idx]) {
+                quiz.tracks[idx].title = inp.value.trim() || 'Без названия';
+            }
+        });
+
+        quiz.name = newName;
         saveAppData();
+
+        // Если викторина в облаке — обновляем её в базе
         if (db && quizId.startsWith('cloud_')) {
-            db.from('quizzes').update({ name: quiz.name }).eq('id', quizId.replace('cloud_', '')).then();
+            const cleanId = quizId.replace('cloud_', '');
+            try {
+                const { error } = await db.from('quizzes').update({
+                    name: quiz.name,
+                    tracks: quiz.tracks
+                }).eq('id', cleanId);
+
+                if (error) throw error;
+                alert('✅ Изменения сохранены в облаке!');
+            } catch (err) {
+                console.error('Ошибка обновления:', err);
+                alert('❌ Не удалось обновить в облаке: ' + err.message);
+            }
+        } else {
+            alert('✅ Изменения сохранены локально!');
         }
-        showQuizDetail(quizId);
-    }
+
+        showQuizDetail(quizId); // Возвращаемся к деталям
+    });
 };
 
 window.deleteQuiz = function(quizId) {
