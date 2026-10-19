@@ -29,6 +29,7 @@ body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
+    /* ФИКС: Безопасная зона iPhone */
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
 }
@@ -45,6 +46,7 @@ body.dark {
 .app-container {
     max-width: 500px;
     margin: 0 auto;
+    /* ФИКС: Учитываем меню и безопасную зону */
     padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
@@ -158,16 +160,6 @@ body.dark {
     border-color: var(--accent);
 }
 
-.form-group {
-    margin-bottom: 16px;
-}
-.form-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 6px;
-    font-size: 14px;
-}
-
 /* ============================================
    ОПРОСНИК
    ============================================ */
@@ -215,7 +207,7 @@ body.dark {
 }
 
 /* ============================================
-   НИЖНЯЯ ПАНЕЛЬ
+   НИЖНЯЯ ПАНЕЛЬ (ИСПРАВЛЕНО ДЛЯ IPHONE)
    ============================================ */
 .bottom-nav {
     position: fixed;
@@ -226,6 +218,7 @@ body.dark {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
+    /* ФИКС: Безопасная зона iPhone снизу */
     padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
     z-index: 100;
     backdrop-filter: blur(10px);
@@ -240,6 +233,7 @@ body.dark {
     font-size: 11px;
     font-weight: 500;
     transition: 0.2s;
+    /* ФИКС: Небольшой отступ, чтобы не липло к краям */
     padding: 0 4px;
 }
 .bottom-nav a .icon {
@@ -474,7 +468,7 @@ body.dark {
 }
 
 /* ============================================
-   ПОДГОТОВКА
+   ПОДГОТОВКА (ФИКС: эти классы потерялись)
    ============================================ */
 .prepare-select {
     margin-bottom: 16px;
@@ -595,7 +589,7 @@ body.dark {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .level-btn.selected {
-    border-color: var(--accent);
+    border-color: var color(--accent);
     background: var(--card);
     box-shadow: 0 0 0 3px rgba(139, 58, 42, 0.2);
 }
@@ -626,10 +620,11 @@ body.dark {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
+    padding: 8:px 0;
+    border-bottom:  var1px solid var(--border(--);
 }
-.settings-row:last-child {
+.settings-row:textlast-child {
+);
     border-bottom: none;
 }
 .settings-row input[type="number"] {
@@ -730,8 +725,7 @@ body.dark {
     transition: 0.2s;
     text-align: left;
     font-weight: 500;
-    color: var(--text);
-}
+   }
 .game-options button:hover:not(.disabled) {
     border-color: var(--text-secondary);
 }
@@ -924,7 +918,7 @@ body.dark {
 }
 
 /* ============================================
-   НАСТРОЙКИ
+   НАСТРОЙКИ (ФИКС: эти классы тоже потерялись)
    ============================================ */
 .settings-group {
     background: var(--card);
@@ -1020,7 +1014,4 @@ body.dark {
     .track-list-prepare .item .track-row {
         flex-wrap: wrap;
     }
-}
-body {
-    background: red !important;
 }
