@@ -93,7 +93,6 @@ function loadAppData() {
 function checkOnboarding() {
     const onboardingEl = document.getElementById('onboarding');
     const appEl = document.getElementById('app');
-    
     if (!onboardingEl || !appEl) return;
 
     if (APP.user.name) {
@@ -114,10 +113,8 @@ if (onboardingBtn) {
             if (!name) { alert('Введите имя'); return; }
             APP.user.name = name;
             saveAppData();
-            
             document.getElementById('onboarding').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            
             applyTheme();
             renderLibrary(); 
         } catch (err) {
@@ -178,10 +175,13 @@ function renderLibrary() {
                     <div class="name">${q.name}</div>
                     <div class="count">${q.tracks.length} произведений</div>
                 </div>
-                <button class="heart ${APP.favorites.includes(q.id) ? 'liked' : ''}" 
-                        onclick="event.stopPropagation(); toggleFavorite('${q.id}')">
-                    ${APP.favorites.includes(q.id) ? '❤️' : '🤍'}
-                </button>
+                <div style="display:flex;align-items:center;">
+                    <button class="btn btn-sm btn-secondary refresh-btn" data-id="${q.id}" onclick="event.stopPropagation(); refreshSingleQuiz('${q.id}')" style="width:auto; padding:4px 8px; margin-right:4px;" title="Обновить из облака">🔄</button>
+                    <button class="heart ${APP.favorites.includes(q.id) ? 'liked' : ''}" 
+                            onclick="event.stopPropagation(); toggleFavorite('${q.id}')">
+                        ${APP.favorites.includes(q.id) ? '❤️' : '🤍'}
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -196,6 +196,56 @@ function toggleFavorite(id) {
 }
 
 // ============================================
+// ===== ОБНОВЛЕНИЕ ОДНОЙ ВИКТОРИНЫ =====
+// ============================================
+async function refreshSingleQuiz(quizId) {
+    if (!db) { alert('Нет подключения к базе'); return; }
+    if (!quizId.startsWith('cloud_')) { alert('Эта викторина не сохранена в облаке'); return; }
+
+    const cleanId = quizId.replace('cloud_', '');
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = '⏳';
+    btn.disabled = true;
+
+    try {
+        const { data, error } = await db.from('quizzes').select('*').eq('id', cleanId).single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') { // Не найдено
+                if (confirm('Викторина была удалена из облака. Удалить её с устройства?')) {
+                    APP.library = APP.library.filter(q => q.id !== quizId);
+                    APP.favorites = APP.favorites.filter(id => id !== quizId);
+                    saveAppData();
+                    renderLibrary();
+                    alert('🗑️ Викторина удалена');
+                }
+                return;
+            }
+            throw error;
+        }
+
+        if (data) {
+            // Обновляем локальную копию, сохраняя заметки (они хранятся отдельно в APP.notes)
+            const localQuiz = APP.library.find(q => q.id === quizId);
+            if (localQuiz) {
+                localQuiz.name = data.name;
+                localQuiz.tracks = data.tracks || [];
+                saveAppData();
+                renderLibrary();
+                alert('✅ Викторина обновлена из облака!');
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Ошибка обновления: ' + err.message);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// ============================================
 // ===== ДЕТАЛЬНАЯ КАРТОЧКА =====
 // ============================================
 function showQuizDetail(quizId) {
@@ -206,6 +256,8 @@ function showQuizDetail(quizId) {
     const isFav = APP.favorites.includes(quizId);
     const showAddBtn = document.getElementById('showAddForm');
     if (showAddBtn) showAddBtn.classList.add('hidden');
+
+    const secretKey = localStorage.getItem('owner_' + quiz.name);
 
     container.innerHTML = `
         <div class="quiz-detail">
@@ -257,32 +309,81 @@ function showQuizDetail(quizId) {
 
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(url).then(() => {
-                alert('✅ Ссылка скопирована! Можешь отправить её другу:\n' + url);
-            }).catch(() => {
-                prompt('Скопируй ссылку вручную:', url);
-            });
+                alert('✅ Ссылка скопирована:\n' + url);
+            }).catch(() => prompt('Скопируй ссылку вручную:', url));
         } else {
             prompt('Скопируй ссылку вручную:', url);
         }
     });
 
-    document.getElementById('detailEdit').addEventListener('click', () => {
+    // Кнопка "Редактировать" (с проверкой ключа)
+    document.getElementById('detailEdit').addEventListener('click', async () => {
+        if (!secretKey && quizId.startsWith('cloud_')) {
+            alert('Вы не можете редактировать эту викторину, так как она создана на другом устройстве.');
+            return;
+        }
+        
         const newName = prompt('Введите новое название викторины:', quiz.name);
-        if (newName && newName.trim()) {
+        if (newName && newName.trim() && newName.trim() !== quiz.name) {
+            const oldName = quiz.name;
             quiz.name = newName.trim();
             saveAppData();
             showQuizDetail(quizId);
+
+            if (db && quizId.startsWith('cloud_')) {
+                const cleanId = quizId.replace('cloud_', '');
+                try {
+                    const { error } = await db
+                        .from('quizzes')
+                        .update({ name: quiz.name })
+                        .eq('id', cleanId)
+                        .eq('secret_key', secretKey);
+
+                    if (error) throw error;
+                    alert('✅ Название обновлено в облаке!');
+                } catch (err) {
+                    console.error('❌ Ошибка:', err.message);
+                    quiz.name = oldName;
+                    saveAppData();
+                    showQuizDetail(quizId);
+                    alert('Не удалось обновить в облаке (возможно, нет прав).');
+                }
+            }
         }
     });
 
-    document.getElementById('detailDelete').addEventListener('click', () => {
-        if (confirm(`Удалить викторину "${quiz.name}"?`)) {
-            APP.library = APP.library.filter(q => q.id !== quizId);
-            APP.favorites = APP.favorites.filter(id => id !== quizId);
-            saveAppData();
-            renderLibrary();
-            if (showAddBtn) showAddBtn.classList.remove('hidden');
+    // Кнопка "Удалить" (с выбором: только с устройства или из облака)
+    document.getElementById('detailDelete').addEventListener('click', async () => {
+        if (secretKey && quizId.startsWith('cloud_')) {
+            const choice = confirm('Удалить викторину и из облака? Нажмите OK для удаления из базы (и с устройства), или Отмена чтобы удалить только с устройства.');
+            
+            if (choice) {
+                // Удаляем из базы
+                const cleanId = quizId.replace('cloud_', '');
+                try {
+                    const { error } = await db
+                        .from('quizzes')
+                        .delete()
+                        .eq('id', cleanId)
+                        .eq('secret_key', secretKey);
+
+                    if (error) throw error;
+                    alert('🗑️ Викторина удалена из облака');
+                } catch (err) {
+                    console.error('Ошибка удаления из облака:', err.message);
+                    alert('Не удалось удалить из облака (возможно, нет прав).');
+                }
+            }
+        } else {
+            if (!confirm(`Удалить викторину "${quiz.name}" с этого устройства? (Из базы она не удалится)`)) return;
         }
+
+        // Удаляем локально в любом случае (если дошли до сюда)
+        APP.library = APP.library.filter(q => q.id !== quizId);
+        APP.favorites = APP.favorites.filter(id => id !== quizId);
+        saveAppData();
+        renderLibrary();
+        if (showAddBtn) showAddBtn.classList.remove('hidden');
     });
 }
 
@@ -321,7 +422,6 @@ if (showAddBtn && addForm) {
         document.getElementById('fileInput').value = '';
     });
 
-    // Переключение полей
     const addMethodSelect = document.getElementById('addMethod');
     const fileDiv = document.getElementById('addMethodFiles');
     const gdriveDiv = document.getElementById('addMethodGdrive');
@@ -339,7 +439,6 @@ if (showAddBtn && addForm) {
         });
     }
 
-    // Сканирование Google Диска
     const scanBtn = document.getElementById('scanGdriveBtn');
     if (scanBtn) {
         scanBtn.addEventListener('click', async function() {
@@ -366,7 +465,6 @@ if (showAddBtn && addForm) {
         });
     }
 
-    // СОХРАНЕНИЕ (с загрузкой в Storage)
     document.getElementById('saveQuizBtn').addEventListener('click', async () => {
         const name = document.getElementById('newQuizName').value.trim();
         const method = document.getElementById('addMethod').value;
@@ -391,7 +489,6 @@ if (showAddBtn && addForm) {
                     return;
                 }
 
-                // Загружаем каждый файл в Supabase Storage
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     const fileExt = file.name.split('.').pop();
@@ -436,6 +533,10 @@ if (showAddBtn && addForm) {
                 }));
             }
 
+            // Генерируем секретный ключ
+            const secretKey = 'key_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('owner_' + name, secretKey);
+
             const newQuiz = {
                 id: 'local_' + Date.now(),
                 name: name,
@@ -448,7 +549,7 @@ if (showAddBtn && addForm) {
             if (db) {
                 try {
                     const { data, error } = await db.from('quizzes').insert([
-                        { name: name, tracks: tracks }
+                        { name: name, tracks: tracks, secret_key: secretKey }
                     ]).select();
 
                     if (error) throw error;
@@ -457,7 +558,7 @@ if (showAddBtn && addForm) {
                         newQuiz.id = 'cloud_' + data[0].id;
                         saveAppData();
                     }
-                    alert(`✅ Викторина "${name}" сохранена в облаке!`);
+                    alert(`✅ Викторина "${name}" сохранена в облаке!\nКодовое слово для редактирования: ${secretKey}`);
                 } catch (err) {
                     console.warn('⚠️ Не удалось сохранить в облако:', err.message);
                     alert(`✅ Викторина "${name}" сохранена локально`);
@@ -466,7 +567,6 @@ if (showAddBtn && addForm) {
                 alert(`✅ Викторина "${name}" сохранена локально`);
             }
 
-            // Сброс формы
             addForm.classList.add('hidden');
             showAddBtn.textContent = '➕ Добавить викторину';
             document.getElementById('newQuizName').value = '';
@@ -480,7 +580,7 @@ if (showAddBtn && addForm) {
 
         } catch (err) {
             console.error(err);
-            alert('❌ Ошибка при загрузке файлов: ' + err.message);
+            alert('❌ Ошибка при загрузке: ' + err.message);
         } finally {
             saveBtn.textContent = originalText;
             saveBtn.disabled = false;
