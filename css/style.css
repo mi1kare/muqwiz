@@ -29,8 +29,7 @@ body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    /* ФИКС: Учитываем безопасную зону iPhone снизу */
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 80px;
     min-height: 100vh;
 }
 
@@ -46,8 +45,7 @@ body.dark {
 .app-container {
     max-width: 500px;
     margin: 0 auto;
-    /* ФИКС: Добавляем отступ контенту, чтобы он не прятался за меню */
-    padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 16px 80px;
 }
 
 .hidden {
@@ -218,8 +216,7 @@ body.dark {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
-    /* ФИКС: Добавляем отступ для полоски iPhone */
-    padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 0 env(safe-area-inset-bottom);
     z-index: 100;
     backdrop-filter: blur(10px);
 }
@@ -233,8 +230,6 @@ body.dark {
     font-size: 11px;
     font-weight: 500;
     transition: 0.2s;
-    /* ФИКС: Даем словам немного места по бокам, чтобы не липли к краям */
-    padding: 0 4px;
 }
 .bottom-nav a .icon {
     font-size: 24px;
@@ -995,7 +990,7 @@ body.dark {
    ============================================ */
 @media (max-width: 480px) {
     .app-container {
-        padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px));
+        padding: 12px 12px 80px;
     }
     .quiz-detail .actions .btn {
         min-width: 60px;
