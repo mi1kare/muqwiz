@@ -12,11 +12,24 @@
         <div class="app-container">
             <div class="page active" id="page-results">
                 <div class="page-title">📊 Результаты</div>
-                <div id="resultsList"></div>
+
+                <!-- Общая статистика -->
+                <div id="statsSummary" class="stats-summary hidden"></div>
+
+                <!-- Список результатов -->
+                <div id="resultsList">
+                    <div class="card" style="text-align:center;padding:40px;color:var(--text-secondary);">
+                        📭 Здесь будут твои результаты<br>
+                        <small>Пройди викторину, чтобы увидеть статистику</small>
+                    </div>
+                </div>
+
+                <!-- Кнопка очистки -->
                 <button class="btn btn-secondary" id="clearResultsBtn" style="margin-top:8px;">🗑️ Очистить историю</button>
             </div>
         </div>
 
+        <!-- Нижняя навигация -->
         <div class="bottom-nav">
             <a href="index.html"><span class="icon">📚</span> Библиотека</a>
             <a href="prepare.html"><span class="icon">🎧</span> Подготовка</a>
