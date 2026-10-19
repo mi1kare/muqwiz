@@ -4,45 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MuQwiz — Подготовка</title>
-    
-    <!-- Подключаем общие стили -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="app">
         <div class="app-container">
-
-            <!-- ===== СТРАНИЦА ПОДГОТОВКИ ===== -->
             <div class="page active" id="page-prepare">
                 <div class="page-title">🎧 Подготовка</div>
-
                 <div class="prepare-select">
                     <select class="select-field" id="prepareSelect">
                         <option value="">— выбери викторину —</option>
                     </select>
                 </div>
-
-                <button class="btn btn-gold" id="gotoQuizBtn" style="margin-bottom:16px;">🎯 Перейти к викторине</button>
-
+                <button class="btn btn-gold" id="gotoQuizBtn" style="margin-bottom:16px; display:none;">🎯 Перейти к викторине</button>
                 <div class="player-area">
                     <audio id="playerAudio" controls></audio>
-                    <div class="player-controls">
-                        <button class="btn btn-sm btn-secondary" id="playPrev">⏮</button>
-                        <button class="btn btn-sm btn-secondary" id="playNext">⏭</button>
-                        <button class="btn btn-sm btn-secondary" id="playShuffle">🔀 Перемешать</button>
-                    </div>
                 </div>
-
                 <div id="trackListPrepare" class="track-list-prepare">
                     <div style="text-align:center;color:var(--text-secondary);padding:20px;">Выбери викторину</div>
                 </div>
             </div>
-
         </div>
 
-        <!-- ===== НИЖНЯЯ ПАНЕЛЬ (ССЫЛКИ) ===== -->
         <div class="bottom-nav">
             <a href="index.html"><span class="icon">📚</span> Библиотека</a>
             <a href="prepare.html" class="active"><span class="icon">🎧</span> Подготовка</a>
@@ -52,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Подключаем наш JS -->
     <script src="js/app.js"></script>
 </body>
 </html>
