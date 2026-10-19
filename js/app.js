@@ -44,26 +44,16 @@ async function scanGoogleDrive(folderLink) {
         const match2 = folderLink.match(/id=([a-zA-Z0-9_-]+)/);
         if (match2) folderId = match2[1];
     }
-
-    if (!folderId) throw new Error('Не удалось извлечь ID папки из ссылки');
+    if (!folderId) throw new Error('Не удалось извлечь ID папки');
 
     const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&key=${GOOGLE_API_KEY}&fields=files(id,name,mimeType)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
-
     const response = await fetch(url);
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Ошибка API Google: ${errorData.error?.message || response.status}`);
-    }
+    if (!response.ok) throw new Error('Ошибка API Google');
 
     const data = await response.json();
     const files = data.files || [];
-
-    const mp3Files = files.filter(f =>
-        f.name.toLowerCase().endsWith('.mp3') || f.mimeType === 'audio/mpeg'
-    );
-
-    return mp3Files.map(f => ({
-        title: f.name.replace(/\.mp3$/i, '').replace(/[_-]/g, ' '),
+    return files.filter(f => f.name.toLowerCase().endsWith('.mp3')).map(f => ({
+        title: f.name.replace(/\.mp3$/i, ''),
         file: `https://drive.google.com/uc?export=download&id=${f.id}`
     }));
 }
@@ -72,23 +62,18 @@ async function scanGoogleDrive(folderLink) {
 // ===== ЗАГРУЗКА И СОХРАНЕНИЕ =====
 // ============================================
 function saveAppData() {
-    try {
-        localStorage.setItem('muqwiz_data', JSON.stringify(APP));
-    } catch(e) { console.warn('Ошибка сохранения', e); }
+    try { localStorage.setItem('muqwiz_data', JSON.stringify(APP)); } catch(e) {}
 }
 
 function loadAppData() {
     try {
         const raw = localStorage.getItem('muqwiz_data');
-        if (raw) {
-            const data = JSON.parse(raw);
-            Object.assign(APP, data);
-        }
-    } catch(e) { console.warn('Ошибка загрузки', e); }
+        if (raw) Object.assign(APP, JSON.parse(raw));
+    } catch(e) {}
 }
 
 // ============================================
-// ===== ПРОВЕРКА ОПРОСНИКА =====
+// ===== ОПРОСНИК =====
 // ============================================
 function checkOnboarding() {
     const onboardingEl = document.getElementById('onboarding');
@@ -108,18 +93,14 @@ function checkOnboarding() {
 const onboardingBtn = document.getElementById('onboardingFinish');
 if (onboardingBtn) {
     onboardingBtn.addEventListener('click', () => {
-        try {
-            const name = document.getElementById('userName').value.trim();
-            if (!name) { alert('Введите имя'); return; }
-            APP.user.name = name;
-            saveAppData();
-            document.getElementById('onboarding').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            applyTheme();
-            renderLibrary(); 
-        } catch (err) {
-            console.error("Ошибка при входе:", err);
-        }
+        const name = document.getElementById('userName').value.trim();
+        if (!name) { alert('Введите имя'); return; }
+        APP.user.name = name;
+        saveAppData();
+        document.getElementById('onboarding').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        applyTheme();
+        renderLibrary(); 
     });
 }
 
@@ -139,29 +120,20 @@ let currentTab = 'my';
 function renderLibrary() {
     const container = document.getElementById('libraryContent');
     const sharedTab = document.getElementById('sharedTabContent');
-    const addForm = document.getElementById('addForm');
-    const showAddBtn = document.getElementById('showAddForm');
-    
     if (!container) return;
 
     if (currentTab === 'shared') {
         container.classList.add('hidden');
         sharedTab.classList.remove('hidden');
-        if (addForm) addForm.classList.add('hidden');
-        if (showAddBtn) showAddBtn.classList.add('hidden');
         return;
     } else {
         container.classList.remove('hidden');
         sharedTab.classList.add('hidden');
-        if (showAddBtn) showAddBtn.classList.remove('hidden');
     }
 
-    let filtered = [];
-    if (currentTab === 'favorites') {
-        filtered = APP.library.filter(q => APP.favorites.includes(q.id));
-    } else {
-        filtered = APP.library;
-    }
+    let filtered = (currentTab === 'favorites') 
+        ? APP.library.filter(q => APP.favorites.includes(q.id)) 
+        : APP.library;
 
     if (filtered.length === 0) {
         container.innerHTML = `<div class="card" style="text-align:center;padding:30px;color:var(--text-secondary);">📭 Здесь пока пусто</div>`;
@@ -176,9 +148,8 @@ function renderLibrary() {
                     <div class="count">${q.tracks.length} произведений</div>
                 </div>
                 <div style="display:flex;align-items:center;">
-                    <button class="btn btn-sm btn-secondary refresh-btn" data-id="${q.id}" onclick="event.stopPropagation(); refreshSingleQuiz('${q.id}')" style="width:auto; padding:4px 8px; margin-right:4px;" title="Обновить из облака">🔄</button>
-                    <button class="heart ${APP.favorites.includes(q.id) ? 'liked' : ''}" 
-                            onclick="event.stopPropagation(); toggleFavorite('${q.id}')">
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); refreshSingleQuiz('${q.id}')" style="width:auto; padding:4px 8px; margin-right:4px;">🔄</button>
+                    <button class="heart ${APP.favorites.includes(q.id) ? 'liked' : ''}" onclick="event.stopPropagation(); toggleFavorite('${q.id}')">
                         ${APP.favorites.includes(q.id) ? '❤️' : '🤍'}
                     </button>
                 </div>
@@ -199,48 +170,34 @@ function toggleFavorite(id) {
 // ===== ОБНОВЛЕНИЕ ОДНОЙ ВИКТОРИНЫ =====
 // ============================================
 async function refreshSingleQuiz(quizId) {
-    if (!db) { alert('Нет подключения к базе'); return; }
-    if (!quizId.startsWith('cloud_')) { alert('Эта викторина не сохранена в облаке'); return; }
-
+    if (!db || !quizId.startsWith('cloud_')) { alert('Эта викторина не в облаке'); return; }
     const cleanId = quizId.replace('cloud_', '');
-    // Находим кнопку, чтобы показать загрузку (если вызвано из события)
-    const btn = event ? event.target : null;
-    const originalText = btn ? btn.textContent : '🔄';
-    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+    const btn = event.target;
+    btn.textContent = '⏳';
+    btn.disabled = true;
 
     try {
         const { data, error } = await db.from('quizzes').select('*').eq('id', cleanId).single();
-        
         if (error) {
             if (error.code === 'PGRST116') {
-                if (confirm('Викторина была удалена из облака. Удалить её с устройства?')) {
+                if (confirm('Удалить с устройства? (Викторины нет в облаке)')) {
                     APP.library = APP.library.filter(q => q.id !== quizId);
-                    APP.favorites = APP.favorites.filter(id => id !== quizId);
-                    saveAppData();
-                    renderLibrary();
-                    alert('🗑️ Викторина удалена');
+                    saveAppData(); renderLibrary();
                 }
                 return;
             }
             throw error;
         }
-
-        if (data) {
-            const localQuiz = APP.library.find(q => q.id === quizId);
-            if (localQuiz) {
-                localQuiz.name = data.name;
-                localQuiz.tracks = data.tracks || [];
-                saveAppData();
-                renderLibrary();
-                alert('✅ Викторина обновлена из облака!');
-            }
+        const localQuiz = APP.library.find(q => q.id === quizId);
+        if (localQuiz) {
+            localQuiz.name = data.name;
+            localQuiz.tracks = data.tracks || [];
+            saveAppData();
+            renderLibrary();
+            alert('✅ Викторина обновлена!');
         }
-    } catch (err) {
-        console.error(err);
-        alert('Ошибка обновления: ' + err.message);
-    } finally {
-        if (btn) { btn.textContent = originalText; btn.disabled = false; }
-    }
+    } catch(e) { alert('Ошибка: ' + e.message); }
+    finally { btn.textContent = '🔄'; btn.disabled = false; }
 }
 
 // ============================================
@@ -261,127 +218,69 @@ function showQuizDetail(quizId) {
         <div class="quiz-detail">
             <div class="name">${quiz.name}</div>
             <div class="meta">${quiz.tracks.length} произведений</div>
-
             <div class="actions">
-                <button class="btn btn-sm btn-gold" id="detailFavorite">${isFav ? '❤️' : '🤍'} Избранное</button>
-                <button class="btn btn-sm btn-primary" id="detailQuiz">🎯 Викторина</button>
-                <button class="btn btn-sm btn-secondary" id="detailShare">🔗 Поделиться</button>
-                <button class="btn btn-sm btn-secondary" id="detailEdit">✏️ Редактировать</button>
-                <button class="btn btn-sm btn-danger" id="detailDelete">🗑️ Удалить</button>
+                <button class="btn btn-sm btn-gold" onclick="toggleFavorite('${quizId}'); showQuizDetail('${quizId}')">${isFav ? '❤️' : '🤍'} Избранное</button>
+                <button class="btn btn-sm btn-primary" onclick="window.location.href='quiz.html?id=${quizId}'">🎯 Викторина</button>
+                <button class="btn btn-sm btn-secondary" onclick="shareQuiz('${quizId}')">🔗 Поделиться</button>
+                <button class="btn btn-sm btn-secondary" onclick="editQuizName('${quizId}')">✏️ Редактировать</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteQuiz('${quizId}')">🗑️ Удалить</button>
             </div>
-
             <div class="track-list">
-                ${quiz.tracks.map((t, i) => `
-                    <div class="track-item">
-                        <span class="title">${i+1}. ${t.title}</span>
-                        <span>${t.file ? '🎵' : ''}</span>
-                    </div>
-                `).join('')}
+                ${quiz.tracks.map((t, i) => `<div class="track-item"><span>${i+1}. ${t.title}</span></div>`).join('')}
             </div>
-
-            <button class="btn btn-secondary" id="detailBack" style="margin-top:12px;">← Назад</button>
+            <button class="btn btn-secondary" onclick="renderLibrary(); document.getElementById('showAddForm').classList.remove('hidden');" style="margin-top:12px;">← Назад</button>
         </div>
     `;
-
-    document.getElementById('detailBack').addEventListener('click', () => {
-        if (showAddBtn) showAddBtn.classList.remove('hidden');
-        renderLibrary();
-    });
-
-    document.getElementById('detailFavorite').addEventListener('click', () => {
-        const idx = APP.favorites.indexOf(quizId);
-        if (idx > -1) APP.favorites.splice(idx, 1);
-        else APP.favorites.push(quizId);
-        saveAppData();
-        showQuizDetail(quizId);
-    });
-
-    document.getElementById('detailQuiz').addEventListener('click', () => {
-        window.location.href = 'quiz.html?id=' + quizId;
-    });
-
-    // Безопасная кнопка "Поделиться"
-    document.getElementById('detailShare').addEventListener('click', () => {
-        const cleanId = quizId.startsWith('cloud_') ? quizId.replace('cloud_', '') : quizId;
-        const url = window.location.origin + window.location.pathname + '?quiz=' + cleanId;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(url).then(() => {
-                alert('✅ Ссылка скопирована:\n' + url);
-            }).catch(() => prompt('Скопируй ссылку вручную:', url));
-        } else {
-            prompt('Скопируй ссылку вручную:', url);
-        }
-    });
-
-    // Редактирование (с проверкой ключа)
-    document.getElementById('detailEdit').addEventListener('click', async () => {
-        if (!secretKey && quizId.startsWith('cloud_')) {
-            alert('Вы не можете редактировать эту викторину, так как она создана на другом устройстве.');
-            return;
-        }
-        
-        const newName = prompt('Введите новое название викторины:', quiz.name);
-        if (newName && newName.trim() && newName.trim() !== quiz.name) {
-            const oldName = quiz.name;
-            quiz.name = newName.trim();
-            saveAppData();
-            showQuizDetail(quizId);
-
-            if (db && quizId.startsWith('cloud_')) {
-                const cleanId = quizId.replace('cloud_', '');
-                try {
-                    const { error } = await db
-                        .from('quizzes')
-                        .update({ name: quiz.name })
-                        .eq('id', cleanId)
-                        .eq('secret_key', secretKey);
-
-                    if (error) throw error;
-                    alert('✅ Название обновлено в облаке!');
-                } catch (err) {
-                    console.error('❌ Ошибка:', err.message);
-                    quiz.name = oldName;
-                    saveAppData();
-                    showQuizDetail(quizId);
-                    alert('Не удалось обновить в облаке (возможно, нет прав).');
-                }
-            }
-        }
-    });
-
-    // Удаление (с выбором)
-    document.getElementById('detailDelete').addEventListener('click', async () => {
-        if (secretKey && quizId.startsWith('cloud_')) {
-            const choice = confirm('Удалить викторину и из облака? Нажмите OK для удаления из базы (и с устройства), или Отмена чтобы удалить только с устройства.');
-            
-            if (choice) {
-                const cleanId = quizId.replace('cloud_', '');
-                try {
-                    const { error } = await db
-                        .from('quizzes')
-                        .delete()
-                        .eq('id', cleanId)
-                        .eq('secret_key', secretKey);
-
-                    if (error) throw error;
-                    alert('🗑️ Викторина удалена из облака');
-                } catch (err) {
-                    console.error('Ошибка удаления из облака:', err.message);
-                    alert('Не удалось удалить из облака (возможно, нет прав).');
-                }
-            }
-        } else {
-            if (!confirm(`Удалить викторину "${quiz.name}" с этого устройства? (Из базы она не удалится)`)) return;
-        }
-
-        APP.library = APP.library.filter(q => q.id !== quizId);
-        APP.favorites = APP.favorites.filter(id => id !== quizId);
-        saveAppData();
-        renderLibrary();
-        if (showAddBtn) showAddBtn.classList.remove('hidden');
-    });
 }
+
+window.shareQuiz = function(quizId) {
+    const cleanId = quizId.startsWith('cloud_') ? quizId.replace('cloud_', '') : quizId;
+    const url = window.location.origin + window.location.pathname + '?quiz=' + cleanId;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => alert('✅ Ссылка скопирована:\n' + url));
+    } else {
+        prompt('Скопируйте ссылку:', url);
+    }
+};
+
+window.editQuizName = function(quizId) {
+    const quiz = APP.library.find(q => q.id === quizId);
+    if (!quiz) return;
+    const secretKey = localStorage.getItem('owner_' + quiz.name);
+    if (!secretKey && quizId.startsWith('cloud_')) {
+        alert('Вы не можете редактировать эту викторину (создана не вами).');
+        return;
+    }
+    const newName = prompt('Новое название:', quiz.name);
+    if (newName && newName.trim()) {
+        quiz.name = newName.trim();
+        saveAppData();
+        if (db && quizId.startsWith('cloud_')) {
+            db.from('quizzes').update({ name: quiz.name }).eq('id', quizId.replace('cloud_', '')).eq('secret_key', secretKey).then();
+        }
+        showQuizDetail(quizId);
+    }
+};
+
+window.deleteQuiz = function(quizId) {
+    const quiz = APP.library.find(q => q.id === quizId);
+    if (!quiz) return;
+    const secretKey = localStorage.getItem('owner_' + quiz.name);
+    
+    if (secretKey && quizId.startsWith('cloud_')) {
+        if (confirm('Удалить и из облака?')) {
+            db.from('quizzes').delete().eq('id', quizId.replace('cloud_', '')).eq('secret_key', secretKey).then();
+        }
+    } else {
+        if (!confirm('Удалить с устройства? (Из облака не удалится)')) return;
+    }
+    
+    APP.library = APP.library.filter(q => q.id !== quizId);
+    APP.favorites = APP.favorites.filter(id => id !== quizId);
+    saveAppData();
+    renderLibrary();
+    document.getElementById('showAddForm').classList.remove('hidden');
+};
 
 // ============================================
 // ===== ОБРАБОТЧИКИ ВКЛАДОК =====
@@ -411,65 +310,15 @@ if (showAddBtn && addForm) {
     cancelAddBtn.addEventListener('click', () => {
         addForm.classList.add('hidden');
         showAddBtn.textContent = '➕ Добавить викторину';
-        document.getElementById('newQuizName').value = '';
-        document.getElementById('trackFiles').value = '';
-        document.getElementById('gdriveLink').value = '';
-        document.getElementById('gdriveResult').classList.add('hidden');
-        document.getElementById('fileInput').value = '';
     });
-
-    const addMethodSelect = document.getElementById('addMethod');
-    const fileDiv = document.getElementById('addMethodFiles');
-    const gdriveDiv = document.getElementById('addMethodGdrive');
-    const manualDiv = document.getElementById('addMethodManual');
-
-    if (addMethodSelect) {
-        addMethodSelect.addEventListener('change', function() {
-            fileDiv.classList.add('hidden');
-            gdriveDiv.classList.add('hidden');
-            manualDiv.classList.add('hidden');
-
-            if (this.value === 'files') fileDiv.classList.remove('hidden');
-            if (this.value === 'gdrive') gdriveDiv.classList.remove('hidden');
-            if (this.value === 'manual') manualDiv.classList.remove('hidden');
-        });
-    }
-
-    const scanBtn = document.getElementById('scanGdriveBtn');
-    if (scanBtn) {
-        scanBtn.addEventListener('click', async function() {
-            const link = document.getElementById('gdriveLink').value.trim();
-            if (!link) { alert('Введите ссылку на папку Google Диска'); return; }
-
-            document.getElementById('gdriveProgress').classList.remove('hidden');
-            document.getElementById('gdriveResult').classList.add('hidden');
-            this.disabled = true;
-
-            try {
-                const tracks = await scanGoogleDrive(link);
-                document.getElementById('gdriveResult').innerHTML = `<span style="color:green;">✅ Найдено ${tracks.length} MP3 файлов!</span>`;
-                document.getElementById('gdriveResult').classList.remove('hidden');
-                window.scannedGdriveTracks = tracks;
-            } catch (err) {
-                console.error(err);
-                document.getElementById('gdriveResult').innerHTML = `<span style="color:red;">❌ Ошибка: ${err.message}</span>`;
-                document.getElementById('gdriveResult').classList.remove('hidden');
-            } finally {
-                document.getElementById('gdriveProgress').classList.add('hidden');
-                this.disabled = false;
-            }
-        });
-    }
 
     document.getElementById('saveQuizBtn').addEventListener('click', async () => {
         const name = document.getElementById('newQuizName').value.trim();
         const method = document.getElementById('addMethod').value;
-
-        if (!name) { alert('Введите название викторины'); return; }
+        if (!name) { alert('Введите название'); return; }
 
         let tracks = [];
         const saveBtn = document.getElementById('saveQuizBtn');
-        const originalText = saveBtn.textContent;
         saveBtn.textContent = '⏳ Обработка...';
         saveBtn.disabled = true;
 
@@ -477,90 +326,44 @@ if (showAddBtn && addForm) {
             if (method === 'files') {
                 const fileInput = document.getElementById('fileInput');
                 const files = fileInput.files;
-
-                if (!files || files.length === 0) {
-                    alert('Выберите MP3 файлы');
-                    saveBtn.textContent = originalText;
-                    saveBtn.disabled = false;
-                    return;
-                }
+                if (!files || files.length === 0) { alert('Выберите файлы'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     const fileExt = file.name.split('.').pop();
                     const fileName = `${Date.now()}_${i}.${fileExt}`;
-                    const filePath = `${fileName}`;
-
-                    const { data, error } = await db.storage
-                        .from('music')
-                        .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
+                    const { error } = await db.storage.from('music').upload(fileName, file);
                     if (error) throw error;
-
-                    const { data: urlData } = db.storage
-                        .from('music')
-                        .getPublicUrl(filePath);
-
-                    tracks.push({
-                        title: file.name.replace(/\.mp3$/i, ''),
-                        file: urlData.publicUrl
-                    });
+                    const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
+                    tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
                 }
-
             } else if (method === 'gdrive') {
-                if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) {
-                    alert('Сначала отсканируйте папку Google Диска');
-                    saveBtn.textContent = originalText;
-                    saveBtn.disabled = false;
-                    return;
-                }
+                if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) { alert('Сначала сканируйте папку'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
                 tracks = window.scannedGdriveTracks;
-
             } else {
                 const filesText = document.getElementById('trackFiles').value.trim();
-                if (!filesText) { alert('Введите ссылки на MP3'); saveBtn.textContent = originalText; saveBtn.disabled = false; return; }
-                
-                const fileUrls = filesText.split('\n').map(s => s.trim()).filter(s => s);
-                if (fileUrls.length === 0) { alert('Введите хотя бы одну ссылку'); saveBtn.textContent = originalText; saveBtn.disabled = false; return; }
-                
-                tracks = fileUrls.map((url, i) => ({
-                    title: `Трек ${i + 1}`,
-                    file: url
-                }));
+                if (!filesText) { alert('Введите ссылки'); saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; return; }
+                tracks = filesText.split('\n').map((url, i) => ({ title: `Трек ${i + 1}`, file: url.trim() }));
             }
 
             const secretKey = 'key_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('owner_' + name, secretKey);
 
-            const newQuiz = {
-                id: 'local_' + Date.now(),
-                name: name,
-                section: 'my',
-                tracks: tracks
-            };
+            const newQuiz = { id: 'local_' + Date.now(), name: name, tracks: tracks };
             APP.library.push(newQuiz);
             saveAppData();
 
             if (db) {
                 try {
-                    const { data, error } = await db.from('quizzes').insert([
-                        { name: name, tracks: tracks, secret_key: secretKey }
-                    ]).select();
-
+                    const { data, error } = await db.from('quizzes').insert([{ name: name, tracks: tracks, secret_key: secretKey }]).select();
                     if (error) throw error;
-
                     if (data && data[0]) {
                         newQuiz.id = 'cloud_' + data[0].id;
                         saveAppData();
                     }
-                    alert(`✅ Викторина "${name}" сохранена в облаке!\nКодовое слово для редактирования: ${secretKey}`);
-                } catch (err) {
-                    console.warn('⚠️ Не удалось сохранить в облако:', err.message);
-                    alert(`✅ Викторина "${name}" сохранена локально`);
-                }
-            } else {
-                alert(`✅ Викторина "${name}" сохранена локально`);
-            }
+                    alert(`✅ Викторина "${name}" сохранена!\nКодовое слово: ${secretKey}`);
+                } catch (err) { alert(`✅ Викторина сохранена локально (${err.message})`); }
+            } else { alert('✅ Викторина сохранена локально'); }
 
             addForm.classList.add('hidden');
             showAddBtn.textContent = '➕ Добавить викторину';
@@ -570,38 +373,23 @@ if (showAddBtn && addForm) {
             document.getElementById('gdriveResult').classList.add('hidden');
             document.getElementById('fileInput').value = '';
             window.scannedGdriveTracks = null;
-
             renderLibrary();
-
-        } catch (err) {
-            console.error(err);
-            alert('❌ Ошибка при загрузке: ' + err.message);
-        } finally {
-            saveBtn.textContent = originalText;
-            saveBtn.disabled = false;
-        }
+        } catch (err) { alert('❌ Ошибка: ' + err.message); }
+        finally { saveBtn.textContent = '💾 Сохранить'; saveBtn.disabled = false; }
     });
 }
 
 // ============================================
-// ===== ЗАГРУЗКА ИЗ ОБЛАКА (вкладка "Загруженное") =====
+// ===== ЗАГРУЗКА ИЗ ОБЛАКА =====
 // ============================================
 const loadSharedBtn = document.getElementById('loadSharedBtn');
 if (loadSharedBtn) {
     loadSharedBtn.addEventListener('click', async function() {
         const link = document.getElementById('sharedLink').value.trim();
         if (!link) { alert('Вставьте ссылку'); return; }
-
         let quizId = null;
-        try {
-            const url = new URL(link);
-            quizId = url.searchParams.get('quiz');
-        } catch (e) {
-            quizId = link; 
-        }
-
-        if (!quizId) { alert('Не удалось найти ID викторины в ссылке'); return; }
-
+        try { quizId = new URL(link).searchParams.get('quiz'); } catch(e) { quizId = link; }
+        if (!quizId) { alert('Не найден ID'); return; }
         const cleanId = quizId.startsWith('cloud_') ? quizId.replace('cloud_', '') : quizId;
 
         document.getElementById('sharedProgress').classList.remove('hidden');
@@ -609,47 +397,17 @@ if (loadSharedBtn) {
         this.disabled = true;
 
         try {
-            const existsLocal = APP.library.some(q => q.id === 'cloud_' + cleanId);
-            if (existsLocal) {
-                document.getElementById('sharedResult').innerHTML = '<span style="color:orange;">⚠️ Эта викторина уже есть в вашей библиотеке.</span>';
-                document.getElementById('sharedResult').classList.remove('hidden');
-                document.getElementById('sharedProgress').classList.add('hidden');
-                this.disabled = false;
-                return;
-            }
-
-            if (!db) throw new Error('Нет подключения к базе данных');
-
-            const { data, error } = await db
-                .from('quizzes')
-                .select('*')
-                .eq('id', cleanId)
-                .single();
-
+            const { data, error } = await db.from('quizzes').select('*').eq('id', cleanId).single();
             if (error) throw error;
-
             if (data) {
-                const newQuiz = {
-                    id: 'cloud_' + data.id,
-                    name: data.name,
-                    section: 'my',
-                    tracks: data.tracks || []
-                };
-
+                const newQuiz = { id: 'cloud_' + data.id, name: data.name, tracks: data.tracks || [] };
                 APP.library.push(newQuiz);
                 saveAppData();
-                
                 document.getElementById('sharedResult').innerHTML = `<span style="color:green;">✅ Викторина "${newQuiz.name}" загружена!</span>`;
                 document.getElementById('sharedResult').classList.remove('hidden');
-                
-                setTimeout(() => {
-                    document.querySelector('#libraryTabs button[data-tab="my"]').click();
-                }, 1000);
-            } else {
-                throw new Error('Викторина не найдена');
+                setTimeout(() => { document.querySelector('#libraryTabs button[data-tab="my"]').click(); }, 1000);
             }
         } catch (err) {
-            console.error(err);
             document.getElementById('sharedResult').innerHTML = `<span style="color:red;">❌ Ошибка: ${err.message}</span>`;
             document.getElementById('sharedResult').classList.remove('hidden');
         } finally {
@@ -660,47 +418,147 @@ if (loadSharedBtn) {
 }
 
 // ============================================
-// ===== ПОДГОТОВКА (Заполнение списка) =====
+// ===== ПОДГОТОВКА =====
 // ============================================
 function renderPrepareSelect() {
     const select = document.getElementById('prepareSelect');
     if (!select) return;
-
     select.innerHTML = '<option value="">— выбери викторину —</option>';
     APP.library.forEach(q => {
-        const opt = document.createElement('option');
-        opt.value = q.id;
-        opt.textContent = `${q.name} (${q.tracks.length})`;
-        select.appendChild(opt);
+        select.innerHTML += `<option value="${q.id}">${q.name} (${q.tracks.length})</option>`;
     });
+}
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlId = urlParams.get('id');
-    if (urlId && APP.library.some(q => q.id === urlId)) {
-        select.value = urlId;
-    }
+const prepSelect = document.getElementById('prepareSelect');
+if (prepSelect) {
+    prepSelect.addEventListener('change', function() {
+        const quizId = this.value;
+        const quiz = APP.library.find(q => q.id === quizId);
+        if (!quiz) return;
+
+        const container = document.getElementById('trackListPrepare');
+        container.innerHTML = quiz.tracks.map((t, i) => `
+            <div class="item" style="padding:10px 0; border-bottom:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>${i+1}. ${t.title}</span>
+                    <button class="btn btn-sm btn-secondary" onclick="playPrep('${t.file}')">▶</button>
+                </div>
+            </div>
+        `).join('');
+
+        const gotoBtn = document.getElementById('gotoQuizBtn');
+        gotoBtn.style.display = 'block';
+        gotoBtn.dataset.quizId = quizId;
+    });
+}
+
+window.playPrep = function(url) {
+    const audio = document.getElementById('playerAudio');
+    if (audio) { audio.src = url; audio.play().catch(()=>{}); }
+};
+
+const gotoQuizBtn = document.getElementById('gotoQuizBtn');
+if (gotoQuizBtn) {
+    gotoQuizBtn.addEventListener('click', function() {
+        if (this.dataset.quizId) window.location.href = 'quiz.html?id=' + this.dataset.quizId;
+    });
 }
 
 // ============================================
-// ===== ВИКТОРИНА (Заполнение списка) =====
+// ===== ВИКТОРИНА =====
 // ============================================
 function renderQuizSelect() {
     const select = document.getElementById('quizSelect');
     if (!select) return;
-
     select.innerHTML = '<option value="">— выбери викторину —</option>';
     APP.library.forEach(q => {
-        const opt = document.createElement('option');
-        opt.value = q.id;
-        opt.textContent = `${q.name} (${q.tracks.length})`;
-        select.appendChild(opt);
+        select.innerHTML += `<option value="${q.id}">${q.name} (${q.tracks.length})</option>`;
     });
 
     const urlParams = new URLSearchParams(window.location.search);
     const urlId = urlParams.get('id');
-    if (urlId && APP.library.some(q => q.id === urlId)) {
-        select.value = urlId;
+    if (urlId && APP.library.some(q => q.id === urlId)) select.value = urlId;
+}
+
+const startBtn = document.getElementById('startQuizBtn');
+if (startBtn) {
+    startBtn.addEventListener('click', function() {
+        const quizId = document.getElementById('quizSelect').value;
+        if (!quizId) { alert('Выберите викторину'); return; }
+        const quiz = APP.library.find(q => q.id === quizId);
+        if (!quiz) return;
+
+        Q.quizId = quizId;
+        Q.questions = [...quiz.tracks].sort(() => Math.random() - 0.5);
+        Q.currentIndex = 0;
+        Q.correctCount = 0;
+        Q.totalQuestions = Q.questions.length;
+
+        document.getElementById('quizSetup').classList.add('hidden');
+        document.getElementById('gameScreen').classList.remove('hidden');
+        showQuestion();
+    });
+}
+
+function showQuestion() {
+    if (Q.currentIndex >= Q.totalQuestions) { finishQuiz(); return; }
+    const q = Q.questions[Q.currentIndex];
+    document.getElementById('questionNum').textContent = `Вопрос ${Q.currentIndex + 1} из ${Q.totalQuestions}`;
+    
+    const audio = document.getElementById('gameAudio');
+    audio.src = q.file;
+    audio.play().catch(()=>{});
+
+    document.getElementById('gameQuestion').innerHTML = `
+        <div class="card">
+            <p style="margin-bottom:10px; font-weight:600;">Введите название:</p>
+            <input type="text" id="answerInput" class="input-field" placeholder="Ответ...">
+        </div>
+    `;
+    document.getElementById('submitBtn').onclick = function() {
+        const userAnswer = document.getElementById('answerInput').value.trim().toLowerCase();
+        const correct = q.title.toLowerCase();
+        if (userAnswer === correct) { Q.correctCount++; alert('✅ Правильно!'); }
+        else { alert('❌ Неправильно! Ответ: ' + q.title); }
+        Q.currentIndex++;
+        showQuestion();
+    };
+}
+
+function finishQuiz() {
+    document.getElementById('gameScreen').classList.add('hidden');
+    document.getElementById('finalScreen').classList.remove('hidden');
+    const percent = Math.round((Q.correctCount / Q.totalQuestions) * 100);
+    document.getElementById('finalContent').innerHTML = `
+        <div class="card" style="text-align:center;">
+            <h2>Результат: ${percent}%</h2>
+            <p>${Q.correctCount} из ${Q.totalQuestions}</p>
+            <button class="btn btn-primary" onclick="location.reload()">Ещё раз</button>
+        </div>
+    `;
+}
+
+// ============================================
+// ===== РЕЗУЛЬТАТЫ =====
+// ============================================
+function renderResults() {
+    const container = document.getElementById('resultsList');
+    if (!container) return;
+    if (APP.results.length === 0) {
+        container.innerHTML = `<div class="card" style="text-align:center;padding:20px;">📭 Нет результатов</div>`;
+        return;
     }
+    container.innerHTML = APP.results.map(r => `<div class="card">${r.quizName}: ${r.percent}%</div>`).join('');
+}
+
+// ============================================
+// ===== НАСТРОЙКИ =====
+// ============================================
+function renderSettings() {
+    const nameEl = document.getElementById('settingsName');
+    if (nameEl) nameEl.textContent = APP.user.name || '—';
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) themeSelect.value = APP.settings.theme;
 }
 
 // ============================================
@@ -710,30 +568,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAppData();
     applyTheme();
 
-    if (document.getElementById('page-library')) {
-        checkOnboarding();
-        if (APP.user.name) renderLibrary();
-    }
-
-    if (document.getElementById('page-prepare')) {
-        renderPrepareSelect();
-    }
-
-    if (document.getElementById('page-quiz')) {
-        renderQuizSelect();
-    }
-
-    if (document.getElementById('page-results')) {
-        renderResults();
-    }
-
-    if (document.getElementById('page-settings')) {
-        renderSettings();
-    }
+    if (document.getElementById('page-library')) { checkOnboarding(); if (APP.user.name) renderLibrary(); }
+    if (document.getElementById('page-prepare')) { renderPrepareSelect(); }
+    if (document.getElementById('page-quiz')) { renderQuizSelect(); }
+    if (document.getElementById('page-results')) { renderResults(); }
+    if (document.getElementById('page-settings')) { renderSettings(); }
 });
-
-// Заглушки для функций, которые мы пока не используем на этих страницах
-function renderResults() { /* Логика будет добавлена позже */ }
-function renderSettings() { /* Логика будет добавлена позже */ }
 
 console.log('🎵 MuQwiz загружен!');
