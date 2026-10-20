@@ -10,6 +10,14 @@
   const say = (msg) => { const el = $('mq-auth-message'); if (el) el.textContent = msg; };
   const localSnapshot = () => { try { return JSON.parse(localStorage.getItem('muqwiz_data') || '{}'); } catch { return {}; } };
   const normalize = (x) => ({ user: x.user || {name:''}, library: Array.isArray(x.library)?x.library:[], results: Array.isArray(x.results)?x.results:[], notes: x.notes && typeof x.notes==='object'?x.notes:{}, favorites:Array.isArray(x.favorites)?x.favorites:[], settings: x.settings || {theme:'light'} });
+  // Compare JSON structurally, independent of object key insertion order.
+  const stable = (value) => {
+    if (Array.isArray(value)) return value.map(stable);
+    if (value && typeof value === 'object') return Object.keys(value).sort().reduce((out, key) => { out[key] = stable(value[key]); return out; }, {});
+    return value;
+  };
+  const sameData = (a, b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+  const reconciledKey = () => `muqwiz_cloud_reconciled_${userId}`;
   function showPanel() {
     if ($('mq-account-panel')) return;
     const panel = document.createElement('section'); panel.id='mq-account-panel'; panel.className='card'; panel.style.cssText='margin:12px 0;padding:16px';
@@ -52,17 +60,34 @@
     if(!data) {
       const {error:insertError}=await client.from('user_data').insert({user_id:userId,payload:local});
       if(insertError) { say('Не удалось перенести локальные данные: '+insertError.message); return; }
-      lastCloudJson=JSON.stringify(local); status('Локальные данные перенесены в облако.'); say('Первая синхронизация завершена.');
+      lastCloudJson=JSON.stringify(stable(local)); status('Локальные данные перенесены в облако.'); say('Первая синхронизация завершена.');
     } else {
-      const cloud=normalize(data.payload||{}); lastCloudJson=JSON.stringify(cloud);
+      const cloud=normalize(data.payload||{}); lastCloudJson=JSON.stringify(stable(cloud));
       const hasLocal=local.library.length||local.results.length||local.favorites.length||Object.keys(local.notes).length;
       const hasCloud=cloud.library.length||cloud.results.length||cloud.favorites.length||Object.keys(cloud.notes).length;
-      if(hasLocal && hasCloud && JSON.stringify(local)!==JSON.stringify(cloud)) {
-        if(confirm('На устройстве и в облаке есть разные данные. ОК — объединить, Отмена — загрузить облачную версию (локальная копия сохранится в браузере).')) {
-          const merged=merge(local,cloud); apply(merged); await push(merged);
-        } else { localStorage.setItem('muqwiz_pre_cloud_backup',JSON.stringify(local)); apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud)); }
-      } else if(hasCloud) { apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud)); }
-      else { await push(local); }
+      const alreadyReconciled = localStorage.getItem(reconciledKey()) === '1';
+      if(hasLocal && hasCloud && !sameData(local, cloud)) {
+        if (!alreadyReconciled) {
+          if(confirm('На устройстве и в облаке есть разные данные. ОК — объединить, Отмена — загрузить облачную версию (локальная копия сохранится в браузере).')) {
+            const merged=merge(local,cloud); apply(merged); localStorage.setItem('muqwiz_data',JSON.stringify(merged)); await push(merged);
+          } else {
+            localStorage.setItem('muqwiz_pre_cloud_backup',JSON.stringify(local)); apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
+          }
+          // Remember the initial choice across page navigation; do not ask on every HTML page.
+          localStorage.setItem(reconciledKey(), '1');
+        } else {
+          // Cloud is the canonical copy after initial reconciliation. Preserve any differing local
+          // snapshot before replacing it, so a stale/offline browser never silently loses data.
+          localStorage.setItem('muqwiz_pre_cloud_backup', JSON.stringify(local));
+          apply(cloud); localStorage.setItem('muqwiz_data', JSON.stringify(cloud));
+        }
+      } else if(hasCloud) {
+        apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
+        localStorage.setItem(reconciledKey(), '1');
+      } else {
+        await push(local);
+        localStorage.setItem(reconciledKey(), '1');
+      }
       status('Аккаунт подключён · синхронизация включена'); say('Данные загружены.');
     }
     document.dispatchEvent(new CustomEvent('muqwiz:cloud-loaded'));
@@ -78,7 +103,7 @@
     if(!userId||syncing) return; syncing=true;
     try {
       const payload=normalize(snapshot); const {error}=await client.from('user_data').upsert({user_id:userId,payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      if(error) throw error; lastCloudJson=JSON.stringify(payload); status('Синхронизировано · '+new Date().toLocaleTimeString());
+      if(error) throw error; lastCloudJson=JSON.stringify(stable(payload)); status('Синхронизировано · '+new Date().toLocaleTimeString());
     } catch(e) { status('Нет связи с облаком — изменения сохранены локально и будут отправлены позже.'); console.warn('MuQwiz cloud sync:',e); }
     finally { syncing=false; }
   }
