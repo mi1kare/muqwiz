@@ -1413,7 +1413,7 @@ function initOnboarding() {
 
         // После ввода имени сначала предлагаем вход/регистрацию.
         // Если пользователь ранее выбрал гостевой режим, сразу открываем приложение.
-        if (localStorage.getItem('muqwiz_guest_mode') !== '1') {
+        if (localStorage.getItem('muqwiz_guest_mode') !== '1' && localStorage.getItem('muqwiz_authenticated') !== '1') {
             location.href = 'account.html';
             return;
         }
@@ -1464,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.getElementById('page-library')) {
         // First-time users who entered a name but haven't chosen guest mode should see auth.
-        if (APP.user.name && localStorage.getItem('muqwiz_guest_mode') !== '1') {
+        if (APP.user.name && localStorage.getItem('muqwiz_guest_mode') !== '1' && localStorage.getItem('muqwiz_authenticated') !== '1') {
             location.replace('account.html');
             return;
         }
