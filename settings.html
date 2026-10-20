@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -41,15 +42,6 @@
                     </div>
                 </div>
 
-                <!-- Данные -->
-                <div class="settings-group">
-                    <div class="title">📦 Данные</div>
-                    <div class="settings-row">
-                        <span class="label">Кэш (офлайн-данные)</span>
-                        <button class="btn btn-sm btn-secondary" id="clearCacheBtn">🗑️ Очистить</button>
-                    </div>
-                </div>
-
                 <!-- О приложении -->
                 <div class="settings-group">
                     <div class="title">ℹ️ О приложении</div>
@@ -77,5 +69,6 @@
 
     <!-- Подключаем скрипт -->
     <script src="js/app.js"></script>
+    <script src="account.js"></script>
 </body>
 </html>

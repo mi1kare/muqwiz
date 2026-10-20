@@ -56,7 +56,6 @@
                         <select class="select-field" id="addMethod">
                             <option value="files">📁 Загрузить файлы с устройства</option>
                             <option value="gdrive">☁️ Сканировать Google Диск</option>
-                            <option value="manual">🔗 Вставить ссылки вручную</option>
                         </select>
                     </div>
 
@@ -84,13 +83,6 @@
                         <button class="btn btn-secondary" id="scanGdriveBtn">🔍 Сканировать папку</button>
                         <div id="gdriveProgress" class="hidden" style="text-align:center; margin-top:12px;"><div class="loader"></div></div>
                         <div id="gdriveResult" class="hidden" style="margin-top:12px; font-size:14px;"></div>
-                    </div>
-
-                    <div id="addMethodManual" class="hidden">
-                        <div class="form-group">
-                            <label>Ссылки на MP3 (по одной в строке)</label>
-                            <textarea class="input-field" id="trackFiles" rows="3"></textarea>
-                        </div>
                     </div>
 
                     <button class="btn btn-primary" id="saveQuizBtn" style="margin-top:16px;">💾 Сохранить</button>
@@ -122,5 +114,6 @@
 
     <!-- app.js подключаем с defer, чтобы DOM был готов к моменту выполнения -->
     <script src="js/app.js" defer></script>
+    <script src="account.js" defer></script>
 </body>
 </html>
