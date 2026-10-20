@@ -52,7 +52,7 @@
       }
     }catch(e){say(e.message||'Не удалось подключиться. Локальные данные не изменены.');}
   }
-  async function finishLogin(){const {data,error}=await client.auth.getSession();if(error)throw error;if(!data.session)throw new Error('Сессия не создана. Проверь подтверждение почты.');userId=data.session.user.id;sessionUser=data.session.user;await loadCloud();if(location.pathname.endsWith('/account.html')||location.pathname.endsWith('account.html'))location.href='index.html';renderAccountSettings();say('Вход выполнен.');}
+  async function finishLogin(){const {data,error}=await client.auth.getSession();if(error)throw error;if(!data.session)throw new Error('Сессия не создана. Проверь подтверждение почты.');userId=data.session.user.id;sessionUser=data.session.user;localStorage.removeItem('muqwiz_guest_mode');await loadCloud();if(location.pathname.endsWith('/account.html')||location.pathname.endsWith('account.html'))location.href='index.html';renderAccountSettings();say('Вход выполнен.');}
   async function resetPassword(){const username=$('mq-username')?.value.trim()||'';if(!username)return say('Введи логин, чтобы найти аккаунт.');try{const b=await callEdge({action:'reset',username});say(b.message||'Если аккаунт существует, письмо для сброса пароля отправлено.');}catch(e){say(e.message||'Не удалось отправить письмо.');}}
   async function loadCloud(){
     if(!userId)return;
@@ -118,7 +118,7 @@
   }
   async function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>{if(userId)push(typeof APP!=='undefined'?APP:localSnapshot());},1000);}
   async function syncNow(){if(!userId){status('Войди в аккаунт, чтобы синхронизировать данные.');return;}await push(typeof APP!=='undefined'?APP:localSnapshot(),true);}
-  async function logout(){await client.auth.signOut();userId=null;sessionUser=null;status('Гостевой режим · данные сохранены на устройстве.');renderAccountSettings();}
+  async function logout(){await client.auth.signOut();userId=null;sessionUser=null;localStorage.setItem('muqwiz_guest_mode','1');status('Гостевой режим · данные сохранены на устройстве.');renderAccountSettings();}
   function renderAccountSettings(){const host=$('mq-account-settings');if(!host)return;host.innerHTML='';const signed=!!userId;host.innerHTML=signed?`<div class="settings-row"><span class="label">Логин</span><b id="mq-settings-username">—</b></div><div class="settings-row"><span class="label">Почта</span><span id="mq-settings-email">—</span></div><div class="settings-row"><span class="label">Подтверждение почты</span><span>${sessionUser?.email_confirmed_at?'Подтверждена':'Не подтверждена'}</span></div><div id="mq-account-status" class="settings-row">Подключено</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-secondary btn-sm" id="mq-change-email">Изменить почту</button><button class="btn btn-secondary btn-sm" id="mq-change-password">Изменить пароль</button><button class="btn btn-secondary btn-sm" id="mq-sync-now">Синхронизировать</button><button class="btn btn-danger btn-sm" id="mq-logout">Выйти</button></div><p id="mq-account-message" role="status"></p>`:`<p>Гостевой режим: данные хранятся на этом устройстве.</p><a class="btn btn-primary btn-sm" href="account.html">Войти или создать аккаунт</a><div id="mq-account-status">Локальный режим</div>`;
     if(signed){$('mq-settings-email').textContent=sessionUser?.email||'—';$('mq-settings-username').textContent=sessionUser?.user_metadata?.username||sessionUser?.email?.split('@')[0]||'—';$('mq-sync-now').onclick=syncNow;$('mq-logout').onclick=logout;$('mq-change-email').onclick=async()=>{const email=prompt('Новая почта:',sessionUser?.email||'');if(!email)return;const {error}=await client.auth.updateUser({email});say(error?error.message:'Запрос на смену почты отправлен. Подтверди его по письму.');};$('mq-change-password').onclick=async()=>{const password=prompt('Новый пароль (минимум 10 символов):');if(!password)return;if(password.length<10)return say('Пароль должен содержать минимум 10 символов.');const {error}=await client.auth.updateUser({password});say(error?error.message:'Пароль изменён.');};}
   }
@@ -139,7 +139,7 @@
     };
     registerBtn.onclick=showRegister;loginSwitch.onclick=showLogin;
     $('mq-login-btn').onclick=()=>auth('login');$('mq-register-btn').onclick=()=>auth('register');
-    $('mq-reset').onclick=resetPassword;$('mq-guest').onclick=()=>location.href='index.html';
+    $('mq-reset').onclick=resetPassword;$('mq-guest').onclick=()=>{localStorage.setItem('muqwiz_guest_mode','1');location.href='index.html';};
     showLogin();
   }
   window.MuqwizCloud={scheduleSync,syncNow,get userId(){return userId;}};

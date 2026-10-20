@@ -1411,6 +1411,13 @@ function initOnboarding() {
         APP.user.name = name;
         saveAppData();
 
+        // После ввода имени сначала предлагаем вход/регистрацию.
+        // Если пользователь ранее выбрал гостевой режим, сразу открываем приложение.
+        if (localStorage.getItem('muqwiz_guest_mode') !== '1') {
+            location.href = 'account.html';
+            return;
+        }
+
         const onboardingEl = document.getElementById('onboarding');
         const appEl = document.getElementById('app');
         if (onboardingEl) onboardingEl.classList.add('hidden');
@@ -1456,6 +1463,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initSharedLoader();
 
     if (document.getElementById('page-library')) {
+        // First-time users who entered a name but haven't chosen guest mode should see auth.
+        if (APP.user.name && localStorage.getItem('muqwiz_guest_mode') !== '1') {
+            location.replace('account.html');
+            return;
+        }
         checkOnboarding();
         if (APP.user.name) renderLibrary();
     }
