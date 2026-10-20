@@ -230,6 +230,7 @@ async function downloadFromDrive(fileId, title) {
 // ============================================
 function saveAppData() {
     try { localStorage.setItem('muqwiz_data', JSON.stringify(APP)); } catch (e) {}
+    if (window.MuqwizCloud && typeof window.MuqwizCloud.scheduleSync === 'function') window.MuqwizCloud.scheduleSync(APP);
 }
 
 function loadAppData() {
@@ -444,6 +445,11 @@ window.editQuizName = function (quizId) {
                 `).join('')}
             </div>
 
+            <div class="form-group" style="margin-top:16px;">
+                <label for="editorMp3Files">Добавить MP3 в эту викторину</label>
+                <input type="file" id="editorMp3Files" accept=".mp3,audio/mpeg" multiple class="input-field" style="padding:10px;">
+                <small style="display:block;margin-top:6px;color:var(--text-secondary);">Новые треки добавятся к существующим. Уже добавленные треки останутся на месте.</small>
+            </div>
             <div style="margin-top:16px;">
                 <button class="btn btn-primary" id="editorSaveBtn">💾 Сохранить</button>
                 <button class="btn btn-secondary" onclick="showQuizDetail('${esc(quizId)}')" style="margin-top:8px;">Отмена</button>
@@ -474,6 +480,32 @@ window.editQuizName = function (quizId) {
         });
 
         quiz.name = newName;
+        const mp3Input = document.getElementById('editorMp3Files');
+        const addedFiles = mp3Input ? Array.from(mp3Input.files || []) : [];
+        if (addedFiles.length) {
+            if (!db) { alert('Для загрузки MP3 нужно подключение к облаку. Остальные изменения не потеряны.'); return; }
+            const invalid = addedFiles.find(file => !(file.name.toLowerCase().endsWith('.mp3') || file.type === 'audio/mpeg'));
+            if (invalid) { alert('Можно добавлять только MP3-файлы.'); return; }
+            const saveButton = document.getElementById('editorSaveBtn');
+            saveButton.disabled = true; saveButton.textContent = '⏳ Загружаем MP3…';
+            try {
+                for (let i = 0; i < addedFiles.length; i++) {
+                    const file = addedFiles[i];
+                    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                    const fileName = `editor_${Date.now()}_${i}_${safeName}`;
+                    const { error: uploadError } = await db.storage.from('music').upload(fileName, file, { contentType: 'audio/mpeg', upsert: false });
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
+                    if (!urlData?.publicUrl) throw new Error('Не удалось получить ссылку на MP3: ' + file.name);
+                    quiz.tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
+                }
+            } catch (uploadError) {
+                saveButton.disabled = false; saveButton.textContent = '💾 Сохранить';
+                alert('Не удалось загрузить MP3: ' + uploadError.message + '\nУже загруженные файлы могут остаться в хранилище; повтори сохранение.');
+                return;
+            }
+            saveButton.disabled = false; saveButton.textContent = '💾 Сохранить';
+        }
         saveAppData();
 
         if (db && quizId.startsWith('cloud_')) {

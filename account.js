@@ -1,129 +1,88 @@
-/* MuQwiz account + offline-first cloud sync. Requires Supabase JS v2 and js/app.js. */
+/* MuQwiz account + offline-first sync. */
 (() => {
-  const URL = 'https://xleqzgqiwayloeeewagv.supabase.co';
-  const KEY = 'sb_publishable_ptX6EsSAH92n9XFcP-v9dA_EAOIF7kG';
-  const client = window.supabase?.createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-  if (!client) { console.warn('MuQwiz accounts: Supabase client unavailable'); return; }
-  const EDGE = `${URL}/functions/v1/username-auth`;
-  let userId = null, syncing = false, syncTimer = null, lastCloudJson = null;
-  const $ = (id) => document.getElementById(id);
-  const say = (msg) => { const el = $('mq-auth-message'); if (el) el.textContent = msg; };
-  const localSnapshot = () => { try { return JSON.parse(localStorage.getItem('muqwiz_data') || '{}'); } catch { return {}; } };
-  const stable = (x) => {
-    if (Array.isArray(x)) return x.map(stable);
-    if (x && typeof x === 'object') return Object.fromEntries(Object.keys(x).sort().map(k => [k, stable(x[k])]));
-    return x;
-  };
-  const sameData = (a,b) => JSON.stringify(stable(normalize(a))) === JSON.stringify(stable(normalize(b)));
-  const reconciledKey = () => 'muqwiz_cloud_reconciled_' + userId;
-  const normalize = (x) => ({ user: x.user || {name:''}, library: Array.isArray(x.library)?x.library:[], results: Array.isArray(x.results)?x.results:[], notes: x.notes && typeof x.notes==='object'?x.notes:{}, favorites:Array.isArray(x.favorites)?x.favorites:[], settings: x.settings || {theme:'light'} });
-  function showPanel() {
-    if ($('mq-account-panel')) return;
-    const panel = document.createElement('section'); panel.id='mq-account-panel'; panel.className='card'; panel.style.cssText='margin:12px 0;padding:16px';
-    panel.innerHTML = `<div style="font-weight:700;margin-bottom:8px">☁️ Аккаунт MuQwiz</div><div id="mq-account-status" style="font-size:13px;margin-bottom:10px;color:var(--text-secondary)">Локальный режим — войди, чтобы синхронизировать устройства.</div><div id="mq-auth-form"><input id="mq-username" class="input-field" autocomplete="username" placeholder="Логин" maxlength="24" style="margin-bottom:8px"><input id="mq-email" class="input-field" type="email" autocomplete="email" placeholder="Email для восстановления" style="margin-bottom:8px"><input id="mq-password" class="input-field" type="password" autocomplete="current-password" placeholder="Пароль (минимум 10 символов)" style="margin-bottom:8px"><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="mq-login" class="btn btn-primary btn-sm">Войти</button><button id="mq-register" class="btn btn-secondary btn-sm">Регистрация</button><button id="mq-reset" class="btn btn-secondary btn-sm">Сбросить пароль</button></div></div><div id="mq-auth-message" role="status" style="font-size:13px;margin-top:8px"></div><button id="mq-logout" class="btn btn-secondary btn-sm hidden" style="margin-top:8px">Выйти из аккаунта</button><button id="mq-sync-now" class="btn btn-secondary btn-sm hidden" style="margin:8px 0 0 8px">Синхронизировать</button>`;
-    // Keep account controls in a dedicated overlay instead of injecting them into the
-    // onboarding/app content (which made the login UI appear in the wrong place).
-    const overlay = document.createElement('div');
-    overlay.id = 'mq-account-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);overflow:auto';
-    const box = document.createElement('div');
-    box.style.cssText = 'width:min(100%,440px);max-height:calc(100vh - 36px);overflow:auto;background:var(--card-bg,#202124);color:var(--text-primary,#fff);border:1px solid var(--border-color,rgba(255,255,255,.15));border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.4)';
-    panel.style.cssText = 'margin:0;padding:22px;border:0;box-shadow:none;background:transparent';
-    box.appendChild(panel); overlay.appendChild(box); document.body.appendChild(overlay);
-    const close = document.createElement('button');
-    close.type='button'; close.textContent='Продолжить без аккаунта'; close.className='btn btn-secondary btn-sm';
-    close.style.cssText='display:block;margin:0 auto 18px';
-    close.onclick=()=>{ overlay.style.display='none'; localStorage.setItem('muqwiz_auth_intro_seen','1'); };
-    box.appendChild(close);
-    window.MuqwizAccountModal = { open:()=>{overlay.style.display='flex';}, close:()=>{overlay.style.display='none';} };
-    $('mq-login').onclick=()=>auth('login'); $('mq-register').onclick=()=>auth('register'); $('mq-reset').onclick=resetPassword;
-    $('mq-login').addEventListener('click',()=>{ $('mq-email').style.display='none'; });
-    $('mq-register').addEventListener('click',()=>{ $('mq-email').style.display='block'; $('mq-email').placeholder='Почта'; });
-    $('mq-logout').onclick=async()=>{ await client.auth.signOut(); userId=null; $('mq-auth-form').classList.remove('hidden'); $('mq-logout').classList.add('hidden'); $('mq-sync-now').classList.add('hidden'); say('Вышли. Данные останутся на этом устройстве.'); status('Локальный режим'); };
-    $('mq-sync-now').onclick=()=>syncNow(true);
+  const URL='https://xleqzgqiwayloeeewagv.supabase.co';
+  const KEY='sb_publishable_ptX6EsSAH92n9XFcP-v9dA_EAOIF7kG';
+  const client=window.supabase?.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  if(!client){console.warn('MuQwiz: Supabase client unavailable');return;}
+  const EDGE=`${URL}/functions/v1/username-auth`;
+  let userId=null, sessionUser=null, syncTimer=null, syncing=false, pending=false, lastCloudJson=null, lastLocalJson=null;
+  const $=id=>document.getElementById(id);
+  const say=msg=>{const el=$('mq-auth-message')||$('mq-account-message');if(el)el.textContent=msg;};
+  const status=msg=>{document.querySelectorAll('#mq-account-status').forEach(el=>el.textContent=msg);};
+  const stable=x=>Array.isArray(x)?x.map(stable):(x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,stable(x[k])])):x);
+  const normalize=x=>({user:x?.user||{name:''},library:Array.isArray(x?.library)?x.library:[],results:Array.isArray(x?.results)?x.results:[],notes:x?.notes&&typeof x.notes==='object'?x.notes:{},favorites:Array.isArray(x?.favorites)?x.favorites:[],settings:x?.settings||{theme:'light'}});
+  const json=x=>JSON.stringify(stable(normalize(x)));
+  const localSnapshot=()=>{try{return normalize(JSON.parse(localStorage.getItem('muqwiz_data')||'{}'));}catch{return normalize({});}};
+  function saveLocal(data){localStorage.setItem('muqwiz_data',JSON.stringify(normalize(data)));}
+  function apply(data){const n=normalize(data);if(typeof APP!=='undefined')Object.assign(APP,n);saveLocal(n);try{if(n.user?.name){const onboarding=document.getElementById('onboarding'),app=document.getElementById('app');if(onboarding)onboarding.classList.add('hidden');if(app)app.classList.remove('hidden');}if(typeof applyTheme==='function')applyTheme();if(typeof renderLibrary==='function')renderLibrary();if(typeof renderResults==='function')renderResults();if(typeof renderSettings==='function')renderSettings();if(typeof renderPrepareSelect==='function')renderPrepareSelect();}catch(e){console.warn('Refresh after cloud sync',e);}}
+  function merge(local,cloud){
+    const out=normalize(cloud), l=normalize(local);
+    const keyed=(arr)=>new Map(arr.map((x,i)=>[String(x?.id??`${x?.name||x?.title||'item'}_${i}`),x]));
+    const lib=keyed(cloud.library); for(const [id,item] of keyed(local.library)) {const old=lib.get(id); if(!old)lib.set(id,item); else if(JSON.stringify(stable(item))!==JSON.stringify(stable(old))){const a=Date.parse(item.updatedAt||item.updated_at||item.modifiedAt||'');const b=Date.parse(old.updatedAt||old.updated_at||old.modifiedAt||'');lib.set(id,a&&b?(a>=b?item:old):{...old,...item,_conflictBackup:old});}}
+    const res=keyed([...cloud.results,...local.results]);
+    return normalize({...out,...l,library:[...lib.values()],results:[...res.values()],favorites:[...new Set([...cloud.favorites,...local.favorites])],notes:{...cloud.notes,...local.notes},settings:{...cloud.settings,...local.settings}});
   }
-  function status(s) { if ($('mq-account-status')) $('mq-account-status').textContent=s; }
-  async function auth(action) {
-    const username=$('mq-username').value.trim(), password=$('mq-password').value, email=$('mq-email').value.trim();
-    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) return say('Логин: 3–24 символа, латиница, цифры или _.');
-    if (password.length < 10) return say('Пароль должен содержать минимум 10 символов.');
-    if (action==='register' && !email) return say('Укажи email для подтверждения и восстановления пароля.');
+  function conflictDialog(local,cloud){return new Promise(resolve=>{
+    const old=$('mq-conflict-overlay');if(old)old.remove();
+    const overlay=document.createElement('div');overlay.id='mq-conflict-overlay';overlay.style.cssText='position:fixed;inset:0;z-index:20000;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px';
+    const card=document.createElement('section');card.style.cssText='width:min(100%,500px);max-height:90vh;overflow:auto;background:var(--card-bg,#202124);color:var(--text-primary,#fff);border:1px solid var(--border-color,#555);border-radius:18px;padding:22px';
+    card.innerHTML='<h2 style="margin:0 0 10px">☁️ Разные данные</h2><p>На этом устройстве и в облаке есть изменения. Выбери, как их сохранить. Перед заменой MuQwiz сделает резервную копию.</p><div style="display:grid;gap:9px;margin-top:16px"><button class="btn btn-primary" data-choice="merge">🔀 Объединить данные</button><button class="btn btn-secondary" data-choice="cloud">⬇️ Загрузить облачную версию</button><button class="btn btn-secondary" data-choice="local">⬆️ Загрузить локальную версию в облако</button></div><p style="font-size:12px;opacity:.75;margin-top:12px">Если версии заметки конфликтуют, сохранится резервная копия конфликтующей записи там, где это возможно.</p>';
+    overlay.appendChild(card);document.body.appendChild(overlay);card.querySelectorAll('button').forEach(b=>b.onclick=()=>{overlay.remove();resolve(b.dataset.choice);});
+  });}
+  async function callEdge(payload){const r=await fetch(EDGE,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify(payload)});let b={};try{b=await r.json();}catch{}if(!r.ok)throw new Error(b.error||b.message||'Ошибка авторизации');return b;}
+  async function auth(action){
+    const username=$('mq-username')?.value.trim()||'',password=$('mq-password')?.value||'',email=$('mq-email')?.value.trim()||'',repeat=$('mq-password-repeat')?.value||'';
+    if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))return say('Логин: 3–24 символа, латиница, цифры или _.');
+    if(password.length<10)return say('Пароль должен содержать минимум 10 символов.');
+    if(action==='register'&&password!==repeat)return say('Пароли не совпадают.');
+    if(action==='register'&&!email)return say('Укажи email для восстановления пароля.');
     say('Подключаемся…');
-    try {
-      const response=await fetch(EDGE,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({action,username,password,email})});
-      const body=await response.json(); if(!response.ok) throw new Error(body.error||'Ошибка авторизации');
-      if(action==='register') { say(body.message||'Проверь почту для подтверждения.'); return; }
-      const {error}=await client.auth.setSession({access_token:body.session.access_token,refresh_token:body.session.refresh_token});
-      if(error) throw error;
-      userId=body.user.id; $('mq-auth-form').classList.add('hidden'); $('mq-logout').classList.remove('hidden'); $('mq-sync-now').classList.remove('hidden');
-      await loadCloud();
-    } catch(e) { say(e.message || 'Не удалось подключиться. Локальные данные не изменены.'); }
-  }
-  async function resetPassword() {
-    const username=$('mq-username').value.trim(); if(!username) return say('Сначала введи логин.');
-    try { const r=await fetch(EDGE,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({action:'reset',username})}); const b=await r.json(); if(!r.ok) throw new Error(b.error||'Не удалось отправить письмо'); say(b.message||'Если аккаунт существует, письмо отправлено.'); }
-    catch(e){say(e.message||'Ошибка отправки письма.');}
-  }
-  async function loadCloud() {
-    if(!userId) return;
-    const {data,error}=await client.from('user_data').select('payload,revision').eq('user_id',userId).maybeSingle();
-    if(error) { status('Вход выполнен, но облачная база не настроена.'); say('Примени SQL-миграцию и разверни Edge Function.'); return; }
-    const local=normalize(localSnapshot());
-    if(!data) {
-      const {error:insertError}=await client.from('user_data').insert({user_id:userId,payload:local});
-      if(insertError) { say('Не удалось перенести локальные данные: '+insertError.message); return; }
-      lastCloudJson=JSON.stringify(local); status('Локальные данные перенесены в облако.'); say('Первая синхронизация завершена.');
-    } else {
-      const cloud=normalize(data.payload||{}); lastCloudJson=JSON.stringify(cloud);
-      const hasLocal=local.library.length||local.results.length||local.favorites.length||Object.keys(local.notes).length;
-      const hasCloud=cloud.library.length||cloud.results.length||cloud.favorites.length||Object.keys(cloud.notes).length;
-      const alreadyReconciled = localStorage.getItem(reconciledKey()) === '1';
-      if(hasLocal && hasCloud && !sameData(local, cloud) && !alreadyReconciled) {
-        if(confirm('На устройстве и в облаке есть разные данные. ОК — объединить, Отмена — загрузить облачную версию (локальная копия сохранится в браузере).')) {
-          const merged=merge(local,cloud); apply(merged); localStorage.setItem('muqwiz_data',JSON.stringify(merged)); await push(merged);
-        } else {
-          localStorage.setItem('muqwiz_pre_cloud_backup',JSON.stringify(local)); apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
-        }
-        localStorage.setItem(reconciledKey(), '1');
-      } else if(hasCloud) {
-        if (hasLocal && !sameData(local, cloud)) localStorage.setItem('muqwiz_pre_cloud_backup', JSON.stringify(local));
-        apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
-        localStorage.setItem(reconciledKey(), '1');
-      } else {
-        await push(local);
-        localStorage.setItem(reconciledKey(), '1');
+    try{
+      const b=await callEdge({action,username,password,email});
+      if(action==='register'){
+        // Registration endpoint may return an immediate session, otherwise try standard password sign-in.
+        if(b.session?.access_token&&b.session?.refresh_token){const {error}=await client.auth.setSession({access_token:b.session.access_token,refresh_token:b.session.refresh_token});if(error)throw error;}
+        else {const sign=await client.auth.signInWithPassword({email,password});if(sign.error){say((b.message||'Аккаунт создан.')+' Если требуется подтверждение почты, подтверди её и войди.');return;}}
+        await finishLogin();return;
       }
-      status('Аккаунт подключён · синхронизация включена'); say('Данные загружены.');
+      if(action==='login'){
+        if(b.session?.access_token&&b.session?.refresh_token){const {error}=await client.auth.setSession({access_token:b.session.access_token,refresh_token:b.session.refresh_token});if(error)throw error;}
+        else {const sign=await client.auth.signInWithPassword({email:b.email||email,password});if(sign.error)throw sign.error;}
+        await finishLogin();
+      }
+    }catch(e){say(e.message||'Не удалось подключиться. Локальные данные не изменены.');}
+  }
+  async function finishLogin(){const {data,error}=await client.auth.getSession();if(error)throw error;if(!data.session)throw new Error('Сессия не создана. Проверь подтверждение почты.');userId=data.session.user.id;sessionUser=data.session.user;await loadCloud();if(location.pathname.endsWith('/account.html')||location.pathname.endsWith('account.html'))location.href='index.html';renderAccountSettings();say('Вход выполнен.');}
+  async function resetPassword(){const username=$('mq-username')?.value.trim()||'';if(!username)return say('Введи логин, чтобы найти аккаунт.');try{const b=await callEdge({action:'reset',username});say(b.message||'Если аккаунт существует, письмо для сброса пароля отправлено.');}catch(e){say(e.message||'Не удалось отправить письмо.');}}
+  async function loadCloud(){if(!userId)return;status('Проверяем облачные данные…');const {data,error}=await client.from('user_data').select('payload,revision,updated_at').eq('user_id',userId).maybeSingle();if(error){status('Ошибка чтения облака: '+error.message);say('Данные остались на устройстве. Повтори синхронизацию позже.');return;}
+    const local=localSnapshot(),localHas=hasData(local);
+    if(!data){const {error:insertError}=await client.from('user_data').insert({user_id:userId,payload:local,updated_at:new Date().toISOString()});if(insertError){status('Не удалось создать облачную копию: '+insertError.message);return;}lastCloudJson=json(local);lastLocalJson=json(local);status('Синхронизировано');}
+    else {const cloud=normalize(data.payload||{}),cloudHas=hasData(cloud);lastCloudJson=json(cloud);lastLocalJson=json(local);
+      if(localHas&&cloudHas&&!sameData(local,cloud)){
+        localStorage.setItem('muqwiz_backup_local_'+userId,JSON.stringify(local));localStorage.setItem('muqwiz_backup_cloud_'+userId,JSON.stringify(cloud));
+        const choice=await conflictDialog(local,cloud);
+        if(choice==='merge'){const m=merge(local,cloud);apply(m);await push(m,true);}
+        else if(choice==='local'){apply(local);await push(local,true);}
+        else {apply(cloud);status('Облачная версия загружена; локальная копия сохранена в резервной копии.');}
+      } else if(localHas&&!cloudHas){apply(local);await push(local,true);}
+      else if(cloudHas&&!localHas){apply(cloud);}
+      else if(!sameData(local,cloud)){apply(cloud);}
+      lastCloudJson=json(localSnapshot());lastLocalJson=json(localSnapshot());
     }
-    document.dispatchEvent(new CustomEvent('muqwiz:cloud-loaded'));
+    document.dispatchEvent(new CustomEvent('muqwiz:cloud-loaded'));renderAccountSettings();
+    if(typeof APP!=='undefined'&&!APP.user?.name){const name=prompt('Как к тебе обращаться?');if(name&&name.trim()){APP.user=APP.user||{};APP.user.name=name.trim();if(typeof saveAppData==='function')saveAppData();await scheduleSync();}}
   }
-  function merge(a,b) {
-    const byId=(arr)=>new Map(arr.filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
-    const map=byId(b.library); a.library.forEach(x=>map.set(String(x.id??`${x.name||x.title}-${x.createdAt||''}`),x));
-    const results=new Map(); [...b.results,...a.results].forEach((x,i)=>results.set(String(x.id??`${x.date||''}-${x.quizId||''}-${x.score??i}`),x));
-    return normalize({...b,...a,library:[...map.values()],results:[...results.values()],favorites:[...new Set([...(b.favorites||[]),...(a.favorites||[])])],notes:{...(b.notes||{}),...(a.notes||{})},settings:{...(b.settings||{}),...(a.settings||{})}});
+  function hasData(d){return !!(d.library.length||d.results.length||d.favorites.length||Object.keys(d.notes).length||d.user?.name);}
+  function sameData(a,b){return json(a)===json(b);}
+  async function push(snapshot,force=false){if(!userId)return false;if(syncing){pending=true;return false;}if(!navigator.onLine){status('Офлайн · изменения сохранены на устройстве, ждут отправки.');return false;}syncing=true;status('Синхронизация…');try{let payload=normalize(snapshot||localSnapshot());const {data:remote,error:readError}=await client.from('user_data').select('payload,updated_at').eq('user_id',userId).maybeSingle();if(readError)throw readError;if(remote){const cloud=normalize(remote.payload||{});if(lastCloudJson && json(cloud)!==lastCloudJson && json(payload)!==json(cloud)){localStorage.setItem('muqwiz_backup_local_'+userId,JSON.stringify(payload));localStorage.setItem('muqwiz_backup_cloud_'+userId,JSON.stringify(cloud));const choice=await conflictDialog(payload,cloud);if(choice==='cloud'){apply(cloud);lastCloudJson=json(cloud);lastLocalJson=json(cloud);status('Загружена облачная версия; локальная копия сохранена.');return true;}if(choice==='merge')payload=merge(payload,cloud);/* local choice intentionally keeps payload */}}const {data,error}=await client.from('user_data').upsert({user_id:userId,payload,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select('updated_at').single();if(error)throw error;if(!data)throw new Error('Сервер не подтвердил сохранение');lastCloudJson=json(payload);lastLocalJson=json(payload);status('Синхронизировано · '+new Date().toLocaleTimeString());return true;}catch(e){status('Ошибка синхронизации · данные сохранены локально');console.warn('MuQwiz sync:',e);return false;}finally{syncing=false;if(pending){pending=false;scheduleSync();}}}
+  async function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>{if(userId)push(typeof APP!=='undefined'?APP:localSnapshot());},1000);}
+  async function syncNow(){if(!userId){status('Войди в аккаунт, чтобы синхронизировать данные.');return;}await push(typeof APP!=='undefined'?APP:localSnapshot(),true);}
+  async function logout(){await client.auth.signOut();userId=null;sessionUser=null;status('Гостевой режим · данные сохранены на устройстве.');renderAccountSettings();}
+  function renderAccountSettings(){const host=$('mq-account-settings');if(!host)return;host.innerHTML='';const signed=!!userId;host.innerHTML=signed?`<div class="settings-row"><span class="label">Логин</span><b id="mq-settings-username">—</b></div><div class="settings-row"><span class="label">Почта</span><span id="mq-settings-email">—</span></div><div class="settings-row"><span class="label">Подтверждение почты</span><span>${sessionUser?.email_confirmed_at?'Подтверждена':'Не подтверждена'}</span></div><div id="mq-account-status" class="settings-row">Подключено</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-secondary btn-sm" id="mq-change-email">Изменить почту</button><button class="btn btn-secondary btn-sm" id="mq-change-password">Изменить пароль</button><button class="btn btn-secondary btn-sm" id="mq-sync-now">Синхронизировать</button><button class="btn btn-danger btn-sm" id="mq-logout">Выйти</button></div><p id="mq-account-message" role="status"></p>`:`<p>Гостевой режим: данные хранятся на этом устройстве.</p><a class="btn btn-primary btn-sm" href="account.html">Войти или создать аккаунт</a><div id="mq-account-status">Локальный режим</div>`;
+    if(signed){$('mq-settings-email').textContent=sessionUser?.email||'—';$('mq-settings-username').textContent=sessionUser?.user_metadata?.username||sessionUser?.email?.split('@')[0]||'—';$('mq-sync-now').onclick=syncNow;$('mq-logout').onclick=logout;$('mq-change-email').onclick=async()=>{const email=prompt('Новая почта:',sessionUser?.email||'');if(!email)return;const {error}=await client.auth.updateUser({email});say(error?error.message:'Запрос на смену почты отправлен. Подтверди его по письму.');};$('mq-change-password').onclick=async()=>{const password=prompt('Новый пароль (минимум 10 символов):');if(!password)return;if(password.length<10)return say('Пароль должен содержать минимум 10 символов.');const {error}=await client.auth.updateUser({password});say(error?error.message:'Пароль изменён.');};}
   }
-  function apply(data) { if(typeof APP!=='undefined') Object.assign(APP,normalize(data)); try { if(typeof applyTheme==='function') applyTheme(); if(typeof renderLibrary==='function') renderLibrary(); if(typeof renderResults==='function') renderResults(); if(typeof renderSettings==='function') renderSettings(); } catch(e){console.warn('Refresh after sync:',e);} }
-  async function push(snapshot) {
-    if(!userId||syncing) return; syncing=true;
-    try {
-      const payload=normalize(snapshot); const {error}=await client.from('user_data').upsert({user_id:userId,payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      if(error) throw error; lastCloudJson=JSON.stringify(payload); status('Синхронизировано · '+new Date().toLocaleTimeString());
-    } catch(e) { status('Нет связи с облаком — изменения сохранены локально и будут отправлены позже.'); console.warn('MuQwiz cloud sync:',e); }
-    finally { syncing=false; }
-  }
-  async function syncNow(force=false) { if(!userId) return; if(!navigator.onLine) return status('Нет интернета — данные сохранены локально.'); await push(typeof APP!=='undefined'?APP:localSnapshot()); if(force) say('Синхронизация проверена.'); }
-  function schedule(snapshot) { clearTimeout(syncTimer); syncTimer=setTimeout(()=>{ if(navigator.onLine && userId) push(snapshot); },900); }
-  window.MuqwizCloud={scheduleSync:schedule, syncNow, get userId(){return userId;}};
-  window.addEventListener('online',()=>syncNow());
-  window.addEventListener('offline',()=>status('Офлайн · изменения останутся на устройстве до подключения.'));
-  document.addEventListener('DOMContentLoaded',async()=>{
-    showPanel();
-    const {data}=await client.auth.getSession();
-    if(data.session){userId=data.session.user.id;$('mq-auth-form').classList.add('hidden');$('mq-logout').classList.remove('hidden');$('mq-sync-now').classList.remove('hidden');await loadCloud();}
-    else {
-      status('Локальный режим · войди, чтобы включить синхронизацию.');
-      if (localStorage.getItem('muqwiz_auth_intro_seen') !== '1') window.MuqwizAccountModal?.open();
-    }
-  });
+  function initAccountPage(){if(!$('mq-account-page'))return;const showRegister=()=>{ $('mq-email-row').classList.remove('hidden');$('mq-repeat-row').classList.remove('hidden');$('mq-login-btn').classList.add('hidden');$('mq-register-btn').classList.remove('hidden');$('mq-mode-label').textContent='Создать аккаунт';};$('mq-show-register').onclick=showRegister;$('mq-show-login').onclick=()=>{ $('mq-email-row').classList.add('hidden');$('mq-repeat-row').classList.add('hidden');$('mq-register-btn').classList.add('hidden');$('mq-login-btn').classList.remove('hidden');$('mq-mode-label').textContent='Вход';};$('mq-login-btn').onclick=()=>auth('login');$('mq-register-btn').onclick=()=>auth('register');$('mq-reset').onclick=resetPassword;$('mq-guest').onclick=()=>location.href='index.html';}
+  window.MuqwizCloud={scheduleSync,syncNow,get userId(){return userId;}};
+  window.addEventListener('online',()=>{if(userId)syncNow();});window.addEventListener('offline',()=>status('Офлайн · изменения останутся на устройстве до подключения.'));
+  document.addEventListener('DOMContentLoaded',async()=>{initAccountPage();const {data}=await client.auth.getSession();if(data.session){userId=data.session.user.id;sessionUser=data.session.user;if($('mq-account-page')){await loadCloud();location.href='index.html';}else{renderAccountSettings();loadCloud();}}else renderAccountSettings();});
 })();
