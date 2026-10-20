@@ -58,7 +58,7 @@
                         <label>Способ добавления</label>
                         <select class="select-field" id="addMethod">
                             <option value="files">📁 Загрузить файлы с устройства</option>
-                            <option value="gdrive">☁️ Сканировать Google Диск</option>
+                            <option value="gdrive" hidden>☁️ Сканировать Google Диск</option>
                         </select>
                     </div>
 
@@ -69,7 +69,7 @@
                         </div>
                     </div>
 
-                    <div id="addMethodGdrive" class="hidden">
+                    <div id="addMethodGdrive" class="hidden" hidden>
                         <!-- Блок авторизации Google -->
                         <div class="form-group">
                             <label>Доступ к Google Диску</label>
