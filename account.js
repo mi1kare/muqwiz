@@ -9,24 +9,36 @@
   const $ = (id) => document.getElementById(id);
   const say = (msg) => { const el = $('mq-auth-message'); if (el) el.textContent = msg; };
   const localSnapshot = () => { try { return JSON.parse(localStorage.getItem('muqwiz_data') || '{}'); } catch { return {}; } };
-  const normalize = (x) => ({ user: x.user || {name:''}, library: Array.isArray(x.library)?x.library:[], results: Array.isArray(x.results)?x.results:[], notes: x.notes && typeof x.notes==='object'?x.notes:{}, favorites:Array.isArray(x.favorites)?x.favorites:[], settings: x.settings || {theme:'light'} });
-  // Compare JSON structurally, independent of object key insertion order.
-  const stable = (value) => {
-    if (Array.isArray(value)) return value.map(stable);
-    if (value && typeof value === 'object') return Object.keys(value).sort().reduce((out, key) => { out[key] = stable(value[key]); return out; }, {});
-    return value;
+  const stable = (x) => {
+    if (Array.isArray(x)) return x.map(stable);
+    if (x && typeof x === 'object') return Object.fromEntries(Object.keys(x).sort().map(k => [k, stable(x[k])]));
+    return x;
   };
-  const sameData = (a, b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
-  const reconciledKey = () => `muqwiz_cloud_reconciled_${userId}`;
+  const sameData = (a,b) => JSON.stringify(stable(normalize(a))) === JSON.stringify(stable(normalize(b)));
+  const reconciledKey = () => 'muqwiz_cloud_reconciled_' + userId;
+  const normalize = (x) => ({ user: x.user || {name:''}, library: Array.isArray(x.library)?x.library:[], results: Array.isArray(x.results)?x.results:[], notes: x.notes && typeof x.notes==='object'?x.notes:{}, favorites:Array.isArray(x.favorites)?x.favorites:[], settings: x.settings || {theme:'light'} });
   function showPanel() {
     if ($('mq-account-panel')) return;
     const panel = document.createElement('section'); panel.id='mq-account-panel'; panel.className='card'; panel.style.cssText='margin:12px 0;padding:16px';
     panel.innerHTML = `<div style="font-weight:700;margin-bottom:8px">☁️ Аккаунт MuQwiz</div><div id="mq-account-status" style="font-size:13px;margin-bottom:10px;color:var(--text-secondary)">Локальный режим — войди, чтобы синхронизировать устройства.</div><div id="mq-auth-form"><input id="mq-username" class="input-field" autocomplete="username" placeholder="Логин" maxlength="24" style="margin-bottom:8px"><input id="mq-email" class="input-field" type="email" autocomplete="email" placeholder="Email для восстановления" style="margin-bottom:8px"><input id="mq-password" class="input-field" type="password" autocomplete="current-password" placeholder="Пароль (минимум 10 символов)" style="margin-bottom:8px"><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="mq-login" class="btn btn-primary btn-sm">Войти</button><button id="mq-register" class="btn btn-secondary btn-sm">Регистрация</button><button id="mq-reset" class="btn btn-secondary btn-sm">Сбросить пароль</button></div></div><div id="mq-auth-message" role="status" style="font-size:13px;margin-top:8px"></div><button id="mq-logout" class="btn btn-secondary btn-sm hidden" style="margin-top:8px">Выйти из аккаунта</button><button id="mq-sync-now" class="btn btn-secondary btn-sm hidden" style="margin:8px 0 0 8px">Синхронизировать</button>`;
-    const onboardingCard = document.querySelector('#onboarding .card');
-    const onboardingVisible = document.querySelector('#onboarding') && !document.querySelector('#onboarding').classList.contains('hidden');
-    const target = (onboardingVisible && onboardingCard) || document.querySelector('.app-container') || document.body;
-    target.prepend(panel);
+    // Keep account controls in a dedicated overlay instead of injecting them into the
+    // onboarding/app content (which made the login UI appear in the wrong place).
+    const overlay = document.createElement('div');
+    overlay.id = 'mq-account-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);overflow:auto';
+    const box = document.createElement('div');
+    box.style.cssText = 'width:min(100%,440px);max-height:calc(100vh - 36px);overflow:auto;background:var(--card-bg,#202124);color:var(--text-primary,#fff);border:1px solid var(--border-color,rgba(255,255,255,.15));border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.4)';
+    panel.style.cssText = 'margin:0;padding:22px;border:0;box-shadow:none;background:transparent';
+    box.appendChild(panel); overlay.appendChild(box); document.body.appendChild(overlay);
+    const close = document.createElement('button');
+    close.type='button'; close.textContent='Продолжить без аккаунта'; close.className='btn btn-secondary btn-sm';
+    close.style.cssText='display:block;margin:0 auto 18px';
+    close.onclick=()=>{ overlay.style.display='none'; localStorage.setItem('muqwiz_auth_intro_seen','1'); };
+    box.appendChild(close);
+    window.MuqwizAccountModal = { open:()=>{overlay.style.display='flex';}, close:()=>{overlay.style.display='none';} };
     $('mq-login').onclick=()=>auth('login'); $('mq-register').onclick=()=>auth('register'); $('mq-reset').onclick=resetPassword;
+    $('mq-login').addEventListener('click',()=>{ $('mq-email').style.display='none'; });
+    $('mq-register').addEventListener('click',()=>{ $('mq-email').style.display='block'; $('mq-email').placeholder='Почта'; });
     $('mq-logout').onclick=async()=>{ await client.auth.signOut(); userId=null; $('mq-auth-form').classList.remove('hidden'); $('mq-logout').classList.add('hidden'); $('mq-sync-now').classList.add('hidden'); say('Вышли. Данные останутся на этом устройстве.'); status('Локальный режим'); };
     $('mq-sync-now').onclick=()=>syncNow(true);
   }
@@ -60,28 +72,21 @@
     if(!data) {
       const {error:insertError}=await client.from('user_data').insert({user_id:userId,payload:local});
       if(insertError) { say('Не удалось перенести локальные данные: '+insertError.message); return; }
-      lastCloudJson=JSON.stringify(stable(local)); status('Локальные данные перенесены в облако.'); say('Первая синхронизация завершена.');
+      lastCloudJson=JSON.stringify(local); status('Локальные данные перенесены в облако.'); say('Первая синхронизация завершена.');
     } else {
-      const cloud=normalize(data.payload||{}); lastCloudJson=JSON.stringify(stable(cloud));
+      const cloud=normalize(data.payload||{}); lastCloudJson=JSON.stringify(cloud);
       const hasLocal=local.library.length||local.results.length||local.favorites.length||Object.keys(local.notes).length;
       const hasCloud=cloud.library.length||cloud.results.length||cloud.favorites.length||Object.keys(cloud.notes).length;
       const alreadyReconciled = localStorage.getItem(reconciledKey()) === '1';
-      if(hasLocal && hasCloud && !sameData(local, cloud)) {
-        if (!alreadyReconciled) {
-          if(confirm('На устройстве и в облаке есть разные данные. ОК — объединить, Отмена — загрузить облачную версию (локальная копия сохранится в браузере).')) {
-            const merged=merge(local,cloud); apply(merged); localStorage.setItem('muqwiz_data',JSON.stringify(merged)); await push(merged);
-          } else {
-            localStorage.setItem('muqwiz_pre_cloud_backup',JSON.stringify(local)); apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
-          }
-          // Remember the initial choice across page navigation; do not ask on every HTML page.
-          localStorage.setItem(reconciledKey(), '1');
+      if(hasLocal && hasCloud && !sameData(local, cloud) && !alreadyReconciled) {
+        if(confirm('На устройстве и в облаке есть разные данные. ОК — объединить, Отмена — загрузить облачную версию (локальная копия сохранится в браузере).')) {
+          const merged=merge(local,cloud); apply(merged); localStorage.setItem('muqwiz_data',JSON.stringify(merged)); await push(merged);
         } else {
-          // Cloud is the canonical copy after initial reconciliation. Preserve any differing local
-          // snapshot before replacing it, so a stale/offline browser never silently loses data.
-          localStorage.setItem('muqwiz_pre_cloud_backup', JSON.stringify(local));
-          apply(cloud); localStorage.setItem('muqwiz_data', JSON.stringify(cloud));
+          localStorage.setItem('muqwiz_pre_cloud_backup',JSON.stringify(local)); apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
         }
+        localStorage.setItem(reconciledKey(), '1');
       } else if(hasCloud) {
+        if (hasLocal && !sameData(local, cloud)) localStorage.setItem('muqwiz_pre_cloud_backup', JSON.stringify(local));
         apply(cloud); localStorage.setItem('muqwiz_data',JSON.stringify(cloud));
         localStorage.setItem(reconciledKey(), '1');
       } else {
@@ -103,7 +108,7 @@
     if(!userId||syncing) return; syncing=true;
     try {
       const payload=normalize(snapshot); const {error}=await client.from('user_data').upsert({user_id:userId,payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      if(error) throw error; lastCloudJson=JSON.stringify(stable(payload)); status('Синхронизировано · '+new Date().toLocaleTimeString());
+      if(error) throw error; lastCloudJson=JSON.stringify(payload); status('Синхронизировано · '+new Date().toLocaleTimeString());
     } catch(e) { status('Нет связи с облаком — изменения сохранены локально и будут отправлены позже.'); console.warn('MuQwiz cloud sync:',e); }
     finally { syncing=false; }
   }
@@ -116,6 +121,9 @@
     showPanel();
     const {data}=await client.auth.getSession();
     if(data.session){userId=data.session.user.id;$('mq-auth-form').classList.add('hidden');$('mq-logout').classList.remove('hidden');$('mq-sync-now').classList.remove('hidden');await loadCloud();}
-    else status('Локальный режим · войди, чтобы включить синхронизацию.');
+    else {
+      status('Локальный режим · войди, чтобы включить синхронизацию.');
+      if (localStorage.getItem('muqwiz_auth_intro_seen') !== '1') window.MuqwizAccountModal?.open();
+    }
   });
 })();
