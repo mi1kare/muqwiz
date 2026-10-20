@@ -1411,13 +1411,9 @@ function initOnboarding() {
         APP.user.name = name;
         saveAppData();
 
-        const onboardingEl = document.getElementById('onboarding');
-        const appEl = document.getElementById('app');
-        if (onboardingEl) onboardingEl.classList.add('hidden');
-        if (appEl) appEl.classList.remove('hidden');
-
-        applyTheme();
-        renderLibrary();
+        // Первый запуск: после имени предлагаем аккаунт. Выбор сохраняется на устройстве.
+        localStorage.setItem('muqwiz_auth_choice_pending', '1');
+        window.location.href = 'account.html';
     });
 }
 
