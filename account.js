@@ -145,5 +145,5 @@
   }
   window.MuqwizCloud={scheduleSync,syncNow,get userId(){return userId;}};
   window.addEventListener('online',()=>{if(userId)syncNow();});window.addEventListener('offline',()=>status('Офлайн · изменения останутся на устройстве до подключения.'));
-  document.addEventListener('DOMContentLoaded',async()=>{initAccountPage();const {data}=await client.auth.getSession();if(data.session){userId=data.session.user.id;sessionUser=data.session.user;localStorage.setItem('muqwiz_authenticated','1');localStorage.removeItem('muqwiz_guest_mode');if($('mq-account-page')){await loadCloud();location.href='index.html';}else{renderAccountSettings();loadCloud();}}else renderAccountSettings();});
+  document.addEventListener('DOMContentLoaded',async()=>{initAccountPage();const {data}=await client.auth.getSession();if(data.session){userId=data.session.user.id;sessionUser=data.session.user;localStorage.setItem('muqwiz_authenticated','1');localStorage.removeItem('muqwiz_guest_mode');if($('mq-account-page')){await loadCloud();location.href='index.html';}else{renderAccountSettings();await loadCloud();document.dispatchEvent(new CustomEvent('muqwiz:account-ready',{detail:{authenticated:true}}));}}else{renderAccountSettings();document.dispatchEvent(new CustomEvent('muqwiz:account-ready',{detail:{authenticated:false}}));}});
 })();

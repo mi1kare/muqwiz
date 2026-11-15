@@ -903,6 +903,73 @@ function initAddForm() {
 // ============================================
 // ===== ЗАГРУЗКА ИЗ ОБЛАКА =====
 // ============================================
+// Автоматически добавляет облачную викторину в библиотеку при открытии ссылки ?quiz=ID.
+let incomingQuizImportStarted = false;
+async function importIncomingQuizFromLink() {
+    if (incomingQuizImportStarted || !document.getElementById('page-library')) return;
+    const params = new URLSearchParams(window.location.search);
+    const incomingId = params.get('quiz');
+    if (!incomingId) return;
+    incomingQuizImportStarted = true;
+
+    const cleanId = incomingId.replace(/^cloud_/, '').trim();
+    const notice = document.getElementById('incomingQuizNotice') || (() => {
+        const el = document.createElement('div');
+        el.id = 'incomingQuizNotice';
+        el.className = 'card';
+        el.style.cssText = 'margin:10px 0;padding:12px;font-size:14px;';
+        const tabs = document.getElementById('libraryTabs');
+        if (tabs?.parentNode) tabs.parentNode.insertBefore(el, tabs);
+        return el;
+    })();
+
+    if (!cleanId || !db) {
+        notice.textContent = !db ? 'Не удалось подключиться к облаку. Открой ссылку ещё раз после восстановления соединения.' : 'Ссылка на викторину некорректна.';
+        return;
+    }
+
+    notice.textContent = '⏳ Добавляем викторину в «Мои»…';
+    try {
+        const { data, error } = await db.from('quizzes')
+            .select('id,name,tracks,owner_id')
+            .eq('id', cleanId)
+            .single();
+        if (error) throw error;
+        if (!data) throw new Error('Викторина не найдена или больше недоступна.');
+
+        const cloudId = 'cloud_' + data.id;
+        const existing = APP.library.find(q => q.id === cloudId);
+        if (!existing) {
+            APP.library.push({
+                id: cloudId,
+                name: data.name,
+                tracks: Array.isArray(data.tracks) ? data.tracks : [],
+                owner_id: data.owner_id || null
+            });
+            saveAppData(); // В аккаунте отправит запись в облачный список; у гостя сохранит локально.
+        }
+
+        currentTab = 'my';
+        renderLibrary();
+        const myTab = document.querySelector('#libraryTabs button[data-tab="my"]');
+        if (myTab) {
+            document.querySelectorAll('#libraryTabs button').forEach(btn => btn.classList.toggle('active', btn === myTab));
+        }
+        notice.textContent = existing
+            ? `✓ «${data.name}» уже есть в «Мои викторины». Дубликат не создан.`
+            : `✓ «${data.name}» добавлена в «Мои викторины».`;
+
+        // Убираем параметр после успешного импорта, чтобы обычное обновление страницы
+        // не запускало повторную обработку ссылки.
+        params.delete('quiz');
+        const query = params.toString();
+        history.replaceState({}, '', window.location.pathname + (query ? '?' + query : '') + window.location.hash);
+    } catch (err) {
+        notice.textContent = 'Не удалось добавить викторину: ' + (err.message || 'ошибка загрузки');
+        incomingQuizImportStarted = false;
+    }
+}
+
 function initSharedLoader() {
     const loadSharedBtn = document.getElementById('loadSharedBtn');
     if (!loadSharedBtn) return;
@@ -1698,6 +1765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initLibraryTabs();
     initAddForm();
     initSharedLoader();
+    document.addEventListener('muqwiz:account-ready', importIncomingQuizFromLink);
 
     if (document.getElementById('page-library')) {
         // First-time users who entered a name but haven't chosen guest mode should see auth.
