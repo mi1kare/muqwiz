@@ -14,7 +14,7 @@ const Q = {
     quizId: null, level: 'easy', questions: [], currentIndex: 0,
     correctCount: 0, hintCount: 3, totalQuestions: 0, answered: false,
     timer: null, timeLeft: 90, wrongTitles: [], isFinished: false,
-    timeLimit: 90, fromStart: true
+    timeLimit: 90, fromStart: true, timerStarted: false
 };
 
 // ============================================
@@ -223,6 +223,100 @@ async function downloadFromDrive(fileId, title) {
     const blob = await response.blob();
     if (blob.size === 0) throw new Error(`Пустой файл «${title}»`);
     return blob;
+}
+
+// ============================================
+// ===== ЗАГРУЗКА ФАЙЛОВ С РЕАЛЬНЫМ ПРОГРЕССОМ =====
+// ============================================
+function createUploadProgress(container, files) {
+    if (!container) return { update() {}, complete() {}, fail() {} };
+    const states = files.map(file => ({ loaded: 0, total: file.size || 0, status: 'В очереди' }));
+    container.classList.remove('hidden');
+
+    function draw() {
+        const totalBytes = states.reduce((sum, state) => sum + state.total, 0);
+        const loadedBytes = states.reduce((sum, state) => sum + Math.min(state.loaded, state.total), 0);
+        const percent = totalBytes ? Math.min(100, Math.round(loadedBytes / totalBytes * 100)) : 0;
+        const completed = states.filter(state => state.status === 'Готово').length;
+        container.innerHTML = `
+            <div class="upload-progress-card">
+                <div class="upload-progress-heading"><strong>Загрузка файлов</strong><strong>${percent}%</strong></div>
+                <div class="upload-progress-track"><div class="upload-progress-fill" style="width:${percent}%"></div></div>
+                <div class="upload-progress-summary">${completed} из ${files.length} файлов загружено</div>
+                <div class="upload-progress-list">${files.map((file, index) => {
+                    const state = states[index];
+                    const filePercent = state.total ? Math.min(100, Math.round(state.loaded / state.total * 100)) : (state.status === 'Готово' ? 100 : 0);
+                    return `<div class="upload-progress-file"><div class="upload-progress-file-main"><span class="upload-progress-file-name">${esc(file.name)}</span><span class="upload-progress-file-status ${state.status === 'Ошибка' ? 'is-error' : state.status === 'Готово' ? 'is-done' : ''}">${state.status === 'Загрузка' ? filePercent + '%' : state.status}</span></div><div class="upload-progress-file-track"><div class="upload-progress-file-fill" style="width:${filePercent}%"></div></div></div>`;
+                }).join('')}</div>
+            </div>`;
+    }
+    draw();
+    return {
+        update(index, loaded, total, status) {
+            const state = states[index];
+            if (!state) return;
+            if (Number.isFinite(total) && total > 0) state.total = total;
+            state.loaded = Math.max(state.loaded, Math.min(loaded || 0, state.total || loaded || 0));
+            if (status) state.status = status;
+            draw();
+        },
+        complete(index) {
+            if (!states[index]) return;
+            states[index].loaded = states[index].total;
+            states[index].status = 'Готово';
+            draw();
+        },
+        fail(index) {
+            if (!states[index]) return;
+            states[index].status = 'Ошибка';
+            draw();
+        }
+    };
+}
+
+async function uploadStorageFileWithProgress(file, fileName, progress, index, contentType) {
+    if (!db) throw new Error('Облачное хранилище недоступно');
+    let accessToken = SUPABASE_KEY;
+    try {
+        const { data } = await db.auth.getSession();
+        if (data && data.session && data.session.access_token) accessToken = data.session.access_token;
+    } catch (e) {
+        console.warn('Не удалось получить сессию для загрузки:', e);
+    }
+
+    await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const objectPath = String(fileName).split('/').map(part => encodeURIComponent(part)).join('/');
+        xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/music/${objectPath}`, true);
+        xhr.setRequestHeader('apikey', SUPABASE_KEY);
+        xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+        xhr.setRequestHeader('Content-Type', contentType || file.type || 'application/octet-stream');
+        xhr.setRequestHeader('x-upsert', 'false');
+        xhr.upload.addEventListener('loadstart', () => {
+            if (progress) progress.update(index, 0, file.size || 0, 'Загрузка');
+        });
+        xhr.upload.addEventListener('progress', event => {
+            if (event.lengthComputable && progress) progress.update(index, event.loaded, event.total, 'Загрузка');
+        });
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else {
+                let message = `Ошибка Storage (${xhr.status})`;
+                try {
+                    const body = JSON.parse(xhr.responseText);
+                    message = body.message || body.error || body.statusCode || message;
+                } catch (e) {}
+                reject(new Error(message));
+            }
+        };
+        xhr.onerror = () => reject(new Error('Сетевая ошибка при загрузке файла'));
+        xhr.onabort = () => reject(new Error('Загрузка файла прервана'));
+        xhr.send(file);
+    });
+    if (progress) progress.complete(index);
+    const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
+    if (!urlData || !urlData.publicUrl) throw new Error('Не удалось получить ссылку на загруженный файл');
+    return urlData.publicUrl;
 }
 
 // ============================================
@@ -450,6 +544,7 @@ window.editQuizName = function (quizId) {
                 <input type="file" id="editorMp3Files" accept=".mp3,audio/mpeg" multiple class="input-field" style="padding:10px;">
                 <small style="display:block;margin-top:6px;color:var(--text-secondary);">Новые треки добавятся к существующим. Уже добавленные треки останутся на месте.</small>
             </div>
+            <div id="editorUploadProgress" class="hidden" style="margin-top:14px;"></div>
             <div style="margin-top:16px;">
                 <button class="btn btn-primary" id="editorSaveBtn">💾 Сохранить</button>
                 <button class="btn btn-secondary" onclick="showQuizDetail('${esc(quizId)}')" style="margin-top:8px;">Отмена</button>
@@ -487,17 +582,20 @@ window.editQuizName = function (quizId) {
             const invalid = addedFiles.find(file => !(file.name.toLowerCase().endsWith('.mp3') || file.type === 'audio/mpeg'));
             if (invalid) { alert('Можно добавлять только MP3-файлы.'); return; }
             const saveButton = document.getElementById('editorSaveBtn');
+            const uploadProgress = createUploadProgress(document.getElementById('editorUploadProgress'), addedFiles);
             saveButton.disabled = true; saveButton.textContent = '⏳ Загружаем MP3…';
             try {
                 for (let i = 0; i < addedFiles.length; i++) {
                     const file = addedFiles[i];
                     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                     const fileName = `editor_${Date.now()}_${i}_${safeName}`;
-                    const { error: uploadError } = await db.storage.from('music').upload(fileName, file, { contentType: 'audio/mpeg', upsert: false });
-                    if (uploadError) throw uploadError;
-                    const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
-                    if (!urlData?.publicUrl) throw new Error('Не удалось получить ссылку на MP3: ' + file.name);
-                    quiz.tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: urlData.publicUrl });
+                    try {
+                        const publicUrl = await uploadStorageFileWithProgress(file, fileName, uploadProgress, i, 'audio/mpeg');
+                        quiz.tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: publicUrl });
+                    } catch (error) {
+                        uploadProgress.fail(i);
+                        throw new Error(`${file.name}: ${error.message}`);
+                    }
                 }
             } catch (uploadError) {
                 saveButton.disabled = false; saveButton.textContent = '💾 Сохранить';
@@ -656,20 +754,18 @@ function initAddForm() {
                     alert('Облако недоступно — загрузка файлов невозможна.');
                     return;
                 }
+                const uploadProgress = createUploadProgress(document.getElementById('quizUploadProgress'), Array.from(files));
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     const fileExt = (file.name.split('.').pop() || 'mp3').toLowerCase();
                     const fileName = `${Date.now()}_${i}.${fileExt}`;
-                    const { error } = await db.storage.from('music').upload(fileName, file);
-                    if (error) throw error;
-                    const { data: urlData } = db.storage.from('music').getPublicUrl(fileName);
-                    if (!urlData || !urlData.publicUrl) {
-                        throw new Error('Не удалось получить ссылку на файл. Проверьте Storage.');
+                    try {
+                        const publicUrl = await uploadStorageFileWithProgress(file, fileName, uploadProgress, i, file.type || 'audio/mpeg');
+                        tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: publicUrl });
+                    } catch (error) {
+                        uploadProgress.fail(i);
+                        throw new Error(`${file.name}: ${error.message}`);
                     }
-                    tracks.push({
-                        title: file.name.replace(/\.mp3$/i, ''),
-                        file: urlData.publicUrl
-                    });
                 }
             } else if (method === 'gdrive') {
                 if (!window.scannedGdriveTracks || window.scannedGdriveTracks.length === 0) {
@@ -703,11 +799,7 @@ function initAddForm() {
                     if (!urlData || !urlData.publicUrl) {
                         throw new Error(`Не удалось получить ссылку на «${gFile.title}»`);
                     }
-
-                    tracks.push({
-                        title: gFile.title,
-                        file: urlData.publicUrl
-                    });
+                    tracks.push({ title: gFile.title, file: urlData.publicUrl });
                 }
             }
 
@@ -987,6 +1079,43 @@ function showNextButton() {
     nextBtn.classList.remove('hidden');
 }
 
+function normalizeQuizAnswer(value) {
+    return String(value == null ? '' : value)
+        .toLocaleLowerCase('ru-RU')
+        .replace(/ё/g, 'е')
+        .replace(/№|\bno\.?\s*/gi, ' номер ')
+        .replace(/[«»„“”\"'`.,:;!?()\[\]{}–—-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function startQuizTimer() {
+    if (Q.timerStarted || Q.answered || Q.isFinished) return;
+    Q.timerStarted = true;
+    if (Q.timer) clearInterval(Q.timer);
+    Q.timer = setInterval(timerTick, 1000);
+}
+
+function getTrackFamily(title) {
+    const t = normalizeQuizAnswer(title);
+    const families = [
+        ['этюд', /\bэтюд\b|\betude\b/],
+        ['симфония', /\bсимфон(ия|ии|ию|ией)\b|\bsymphony\b/],
+        ['соната', /\bсонат(а|ы|у|ой|е)\b|\bsonata\b/],
+        ['концерт', /\bконцерт(а|ы|у|ом|е)?\b|\bconcerto\b/],
+        ['прелюдия', /\bпрелюди(я|и|ю|ей)\b|\bprelude\b/],
+        ['вальс', /\bвальс(а|ы|у|ом|е)?\b|\bwaltz\b/],
+        ['мазурка', /\bмазурк(а|и|у|ой|е)\b/],
+        ['ноктюрн', /\bноктюрн(а|ы|у|ом|е)?\b|\bnocturne\b/],
+        ['опера', /\bопера\b|\bари(я|и|ю|ей)\b|\bувертюр(а|ы|у|ой|е)\b/],
+        ['песня', /\bпесн(я|и|ю|ей)\b|\bроманс(а|ы|у|ом|е)?\b/],
+        ['марш', /\bмарш(а|и|у|ем|е)?\b/],
+        ['танец', /\bтан(ец|ца|цы|цу|цем)\b/]
+    ];
+    for (const [family, pattern] of families) if (pattern.test(t)) return family;
+    return 'other';
+}
+
 function initQuizPage() {
     document.querySelectorAll('.level-btn').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -1007,7 +1136,17 @@ function initQuizPage() {
             const selectedBtn = document.querySelector('.level-btn.selected');
             const level = selectedBtn ? selectedBtn.dataset.level : 'easy';
             const countEl = document.getElementById('quizCount');
-            const count = parseInt(countEl ? countEl.value : '10', 10) || 10;
+            const requestedCount = Number.parseInt(countEl ? countEl.value : '10', 10);
+            if (!Number.isFinite(requestedCount) || requestedCount < 1) {
+                alert('Количество вопросов должно быть не меньше 1');
+                if (countEl) { countEl.value = '1'; countEl.focus(); }
+                return;
+            }
+            const count = Math.min(requestedCount, quiz.tracks.length);
+            if (countEl) {
+                countEl.max = String(quiz.tracks.length);
+                countEl.value = String(count);
+            }
 
             let timeLimit = 90, hintLimit = 3, fromStart = true;
             if (level === 'medium') { timeLimit = 60; hintLimit = 3; fromStart = true; }
@@ -1029,6 +1168,8 @@ function initQuizPage() {
             Q.answered = false;
             Q.timeLeft = timeLimit;
             Q.wrongTitles = [];
+            Q.timerStarted = false;
+            if (Q.timer) { clearInterval(Q.timer); Q.timer = null; }
 
             document.getElementById('quizSetup').classList.add('hidden');
             document.getElementById('gameScreen').classList.remove('hidden');
@@ -1046,8 +1187,7 @@ function initQuizPage() {
             const userAnswer = input.value.trim();
             if (!userAnswer) { alert('Введите ответ'); return; }
             const correct = Q.questions[Q.currentIndex].title;
-            const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').trim();
-            const isCorrect = normalize(userAnswer) === normalize(correct);
+            const isCorrect = normalizeQuizAnswer(userAnswer) === normalizeQuizAnswer(correct);
             handleAnswer(isCorrect);
         });
     }
@@ -1103,26 +1243,45 @@ function showQuestion() {
 
     Q.timeLeft = Q.timeLimit;
     updateTimerDisplay();
-    if (Q.timer) clearInterval(Q.timer);
-    Q.timer = setInterval(timerTick, 1000);
+    if (Q.timer) { clearInterval(Q.timer); Q.timer = null; }
+    Q.timerStarted = false;
 
     const audio = document.getElementById('gameAudio');
     if (audio) {
-        audio.src = q.file;
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = q.file || '';
         audio.load();
-
-        audio.oncanplay = null;
-        let seekDone = false;
-
-        audio.oncanplay = function () {
-            if (seekDone) { audio.play().catch(() => {}); return; }
-            if (!Q.fromStart && audio.duration > 10) {
-                seekDone = true;
-                audio.currentTime = audio.duration * (0.3 + Math.random() * 0.4);
-            }
-            audio.play().catch(() => {});
+        audio.onplaying = startQuizTimer;
+        let playbackAttempted = false;
+        audio.onerror = () => {
+            const feedback = document.getElementById('gameFeedback');
+            if (feedback) feedback.innerHTML = '<div class="game-feedback wrong">Не удалось загрузить аудио. Проверь файл или попробуй ещё раз.</div>';
         };
-        audio.onerror = () => console.warn('Ошибка загрузки аудио:', q.file);
+        audio.oncanplay = async function () {
+            if (playbackAttempted || Q.answered || Q.isFinished) return;
+            playbackAttempted = true;
+            try {
+                if (!Q.fromStart && Number.isFinite(audio.duration) && audio.duration > 1) {
+                    // Случайный фрагмент по всей длительности, а не только из середины.
+                    const maxStart = Math.max(0, audio.duration - 0.5);
+                    audio.currentTime = Math.random() * maxStart;
+                    await new Promise(resolve => {
+                        const done = () => { audio.removeEventListener('seeked', done); resolve(); };
+                        audio.addEventListener('seeked', done, { once: true });
+                        // На случай, если браузер уже установил позицию.
+                        setTimeout(() => { audio.removeEventListener('seeked', done); resolve(); }, 1200);
+                    });
+                }
+                const playResult = audio.play();
+                if (playResult && typeof playResult.then === 'function') await playResult;
+                // Таймер запускается событием playing, только после фактического старта.
+            } catch (error) {
+                console.warn('Не удалось автоматически запустить аудио:', error);
+                const feedback = document.getElementById('gameFeedback');
+                if (feedback) feedback.innerHTML = '<div class="game-feedback hint">Нажми ▶ на аудиоплеере, чтобы начать. Таймер запустится вместе с музыкой.</div>';
+            }
+        };
     }
 
     const container = document.getElementById('gameQuestion');
@@ -1148,14 +1307,33 @@ function showQuestion() {
 }
 
 function renderEasyQuestion(container, q) {
-    const allTitles = [...new Set(Q.questions.map(item => item.title))];
+    const titleMap = new Map();
+    Q.questions.forEach(item => {
+        const key = normalizeQuizAnswer(item.title);
+        if (key && !titleMap.has(key)) titleMap.set(key, item.title);
+    });
+    const allTitles = [...titleMap.values()];
     const correct = q.title;
-    let wrongs = allTitles.filter(t => t !== correct);
-    for (let i = wrongs.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [wrongs[i], wrongs[j]] = [wrongs[j], wrongs[i]];
+    let wrongs = allTitles.filter(t => normalizeQuizAnswer(t) !== normalizeQuizAnswer(correct));
+    const correctFamily = getTrackFamily(correct);
+    const sameFamily = wrongs.filter(t => correctFamily !== 'other' && getTrackFamily(t) === correctFamily);
+    const otherFamilies = wrongs.filter(t => !sameFamily.includes(t));
+    const shuffle = list => {
+        const copy = [...list];
+        for (let i = copy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+    };
+    // Сначала один близкий по типу вариант, затем варианты из других типов.
+    wrongs = [
+        ...shuffle(sameFamily).slice(0, 1),
+        ...shuffle(otherFamilies)
+    ].slice(0, 3);
+    if (wrongs.length < 3) {
+        wrongs = [...wrongs, ...shuffle(wrongs.length ? allTitles.filter(t => t !== correct && !wrongs.includes(t)) : allTitles.filter(t => t !== correct))].slice(0, 3);
     }
-    wrongs = wrongs.slice(0, 3);
     while (wrongs.length < 3) wrongs.push('Другой вариант ' + (wrongs.length + 1));
 
     const options = [correct, ...wrongs].sort(() => Math.random() - 0.5);
@@ -1172,11 +1350,11 @@ function renderEasyQuestion(container, q) {
             if (Q.answered) return;
             const selected = this.dataset.value;
             const correct = Q.questions[Q.currentIndex].title;
-            const isCorrect = selected === correct;
+            const isCorrect = normalizeQuizAnswer(selected) === normalizeQuizAnswer(correct);
 
             container.querySelectorAll('.option-btn').forEach(b => {
                 b.classList.add('disabled');
-                if (b.dataset.value === correct) b.classList.add('correct');
+                if (normalizeQuizAnswer(b.dataset.value) === normalizeQuizAnswer(correct)) b.classList.add('correct');
                 if (b === this && !isCorrect) b.classList.add('wrong');
             });
 
@@ -1240,6 +1418,10 @@ function timerTick() {
             }
             const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) submitBtn.disabled = true;
+            document.querySelectorAll('#optionsContainer .option-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('disabled');
+            });
             showNextButton();
         }
     }

@@ -1015,3 +1015,21 @@ body.dark {
         flex-wrap: wrap;
     }
 }
+
+
+/* Реальный прогресс загрузки MP3 в Supabase Storage */
+.upload-progress-card { padding: 14px; border: 1px solid var(--border-color, rgba(120,140,160,.25)); border-radius: 14px; background: var(--card-bg, rgba(120,140,160,.06)); }
+.upload-progress-heading, .upload-progress-file-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.upload-progress-heading { font-size: 14px; margin-bottom: 9px; }
+.upload-progress-heading strong:last-child { font-variant-numeric: tabular-nums; }
+.upload-progress-track, .upload-progress-file-track { overflow: hidden; background: var(--border-color, rgba(120,140,160,.2)); border-radius: 999px; }
+.upload-progress-track { height: 9px; }
+.upload-progress-fill, .upload-progress-file-fill { height: 100%; border-radius: inherit; background: var(--accent, #438a75); transition: width .15s ease; }
+.upload-progress-summary { margin-top: 7px; color: var(--text-secondary); font-size: 12px; }
+.upload-progress-list { display: grid; gap: 10px; margin-top: 13px; }
+.upload-progress-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.upload-progress-file-status { flex: 0 0 auto; color: var(--text-secondary); font-size: 11px; }
+.upload-progress-file-status.is-done { color: #2f8b68; }
+.upload-progress-file-status.is-error { color: #c65353; }
+.upload-progress-file-track { height: 4px; margin-top: 5px; }
+.upload-progress-file-fill { background: var(--accent, #438a75); }
