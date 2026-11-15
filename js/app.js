@@ -492,9 +492,11 @@ function showQuizDetail(quizId) {
                 <button class="btn btn-sm btn-gold" onclick="toggleFavorite('${esc(quizId)}'); showQuizDetail('${esc(quizId)}')">${isFav ? '❤️' : '🤍'} Избранное</button>
                 <button class="btn btn-sm btn-primary" onclick="window.location.href='quiz.html?id=${encodeURIComponent(quizId)}'">🎯 Викторина</button>
                 <button class="btn btn-sm btn-secondary" onclick="shareQuiz('${esc(quizId)}')">🔗 Поделиться</button>
+                <button class="btn btn-sm btn-secondary" onclick="downloadQuizZip('${esc(quizId)}', this)">📦 Скачать ZIP</button>
                 <button class="btn btn-sm btn-secondary" onclick="editQuizName('${esc(quizId)}')">✏️ Редактировать</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteQuiz('${esc(quizId)}')">🗑️ Удалить</button>
             </div>
+            <div id="quizZipProgress" class="hidden" style="margin:10px 0;padding:10px;border-radius:10px;background:var(--surface-secondary,rgba(128,128,128,.10));font-size:13px;"></div>
             <div class="track-list">
                 ${quiz.tracks.map((t, i) => `<div class="track-item"><span>${i + 1}. ${esc(t.title)}</span></div>`).join('')}
             </div>
@@ -502,6 +504,74 @@ function showQuizDetail(quizId) {
         </div>
     `;
 }
+
+window.downloadQuizZip = async function (quizId, button) {
+    const quiz = APP.library.find(q => q.id === quizId);
+    if (!quiz) { alert('Викторина не найдена.'); return; }
+    if (!Array.isArray(quiz.tracks) || quiz.tracks.length === 0) { alert('В этой викторине нет MP3-файлов.'); return; }
+    if (typeof JSZip === 'undefined') { alert('Не удалось загрузить модуль создания ZIP. Обновите страницу и попробуйте снова.'); return; }
+
+    const progress = document.getElementById('quizZipProgress');
+    const originalText = button ? button.textContent : '';
+    if (button) { button.disabled = true; button.textContent = '⏳ Подготовка…'; }
+    if (progress) { progress.classList.remove('hidden'); progress.textContent = `Подготовка архива: 0 из ${quiz.tracks.length}`; }
+
+    const zip = new JSZip();
+    const usedNames = new Set();
+    const safeFileName = (value) => {
+        let name = String(value || 'Без названия').trim()
+            .replace(/[\\/:*?"<>|\u0000-\u001F]/g, '_')
+            .replace(/[. ]+$/g, '')
+            .replace(/^\.+$/g, '')
+            .trim();
+        if (!name) name = 'Без названия';
+        // Windows device names are not valid filenames.
+        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(name)) name = '_' + name;
+        return name;
+    };
+
+    try {
+        for (let i = 0; i < quiz.tracks.length; i++) {
+            const track = quiz.tracks[i] || {};
+            const source = track.file || track.url || track.src;
+            if (!source || typeof source !== 'string') {
+                throw new Error(`У трека «${track.title || `№${i + 1}`}» нет ссылки на аудиофайл.`);
+            }
+            const response = await fetch(source);
+            if (!response.ok) throw new Error(`Не удалось скачать «${track.title || `№${i + 1}`}» (HTTP ${response.status}).`);
+            const blob = await response.blob();
+            if (!blob.size) throw new Error(`Файл «${track.title || `№${i + 1}`}» оказался пустым.`);
+
+            let baseName = safeFileName(track.title || `Трек ${i + 1}`);
+            let fileName = `${baseName}.mp3`;
+            let duplicate = 2;
+            while (usedNames.has(fileName.toLocaleLowerCase())) {
+                fileName = `${baseName} (${duplicate++}).mp3`;
+            }
+            usedNames.add(fileName.toLocaleLowerCase());
+            zip.file(fileName, blob);
+            if (progress) progress.textContent = `Скачано ${i + 1} из ${quiz.tracks.length}: ${fileName}`;
+        }
+
+        if (progress) progress.textContent = 'Создаю ZIP-архив…';
+        const archive = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 5 } });
+        const url = URL.createObjectURL(archive);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${safeFileName(quiz.name)}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        if (progress) progress.textContent = `✅ Готово! В архив добавлено ${quiz.tracks.length} MP3-файлов.`;
+    } catch (error) {
+        console.error('Ошибка создания ZIP викторины:', error);
+        if (progress) progress.textContent = `❌ ${error.message || 'Не удалось создать архив.'}`;
+        alert(`Не удалось скачать викторину: ${error.message || 'ошибка загрузки файлов'}`);
+    } finally {
+        if (button) { button.disabled = false; button.textContent = originalText || '📦 Скачать ZIP'; }
+    }
+};
 
 window.shareQuiz = function (quizId) {
     const cleanId = quizId.startsWith('cloud_') ? quizId.replace('cloud_', '') : quizId;
