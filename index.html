@@ -55,6 +55,14 @@
                     </div>
                     
                     <div class="form-group">
+                        <label>Где сохранить викторину?</label>
+                        <select class="select-field" id="quizCreateSaveMode">
+                            <option value="local">Только на этом устройстве</option>
+                            <option value="cloud">В облаке — общая викторина по ссылке</option>
+                        </select>
+                        <small id="quizCreateModeWarning" style="display:block;margin-top:7px;color:var(--text-secondary);">Локальную викторину можно редактировать на этом устройстве. Она не появится у других пользователей.</small>
+                    </div>
+                    <div class="form-group">
                         <label>Способ добавления</label>
                         <select class="select-field" id="addMethod">
                             <option value="files">📁 Загрузить файлы с устройства</option>

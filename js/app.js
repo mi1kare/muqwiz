@@ -41,6 +41,11 @@ const SUPABASE_URL = 'https://xleqzgqiwayloeeewagv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ptX6EsSAH92n9XFcP-v9dA_EAOIF7kG';
 let db = null;
 
+async function getMuQwizUser() {
+    if (!db) return null;
+    try { const { data, error } = await db.auth.getUser(); if (error) return null; return data?.user || null; } catch (e) { return null; }
+}
+
 if (typeof supabase !== 'undefined') {
     try {
         db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -458,6 +463,7 @@ async function refreshSingleQuiz(quizId, btn) {
         if (localQuiz) {
             localQuiz.name = data.name;
             localQuiz.tracks = data.tracks || [];
+            localQuiz.owner_id = data.owner_id || null;
             saveAppData();
             renderLibrary();
             alert('✅ Викторина обновлена!');
@@ -509,13 +515,36 @@ window.shareQuiz = function (quizId) {
     }
 };
 
-window.editQuizName = function (quizId) {
+window.editQuizName = async function (quizId) {
     const quiz = APP.library.find(q => q.id === quizId);
     if (!quiz) return;
 
+    const user = await getMuQwizUser();
+    const isCloudQuiz = String(quizId).startsWith('cloud_');
+    const isDeviceCopy = !!quiz.deviceOnly;
+    const isOwner = !!(user && quiz.owner_id && user.id === quiz.owner_id);
+    const canPublish = !!user && (!isCloudQuiz || isOwner);
+    let workingTracks = (quiz.tracks || []).map(track => ({ ...track }));
     const container = document.getElementById('libraryContent');
     const showAddBtn = document.getElementById('showAddForm');
     if (showAddBtn) showAddBtn.classList.add('hidden');
+
+    const renderEditorTracks = () => {
+        const list = document.getElementById('editorTrackList');
+        if (!list) return;
+        list.innerHTML = workingTracks.map((t, i) => `
+            <div class="edit-track-item" style="display:flex; gap:10px; margin-bottom:8px;">
+                <input type="text" class="input-field track-title-edit" data-index="${i}" value="${esc(t.title)}" style="flex:1; padding:8px 12px;">
+                <button class="btn btn-sm btn-danger remove-track-btn" data-index="${i}">✖</button>
+            </div>`).join('');
+        list.querySelectorAll('.remove-track-btn').forEach(btn => btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.index);
+            if (confirm(`Удалить трек «${workingTracks[idx]?.title || ''}»?`)) {
+                workingTracks.splice(idx, 1);
+                renderEditorTracks();
+            }
+        }));
+    };
 
     container.innerHTML = `
         <div class="quiz-detail">
@@ -523,108 +552,121 @@ window.editQuizName = function (quizId) {
                 <span style="font-size:20px;font-weight:700;">✏️ Редактировать викторину</span>
                 <button class="btn btn-sm btn-secondary" onclick="showQuizDetail('${esc(quizId)}')">✖ Закрыть</button>
             </div>
-
+            <div class="card" style="padding:12px;margin-bottom:14px;">
+                <strong>Где сохранить изменения?</strong>
+                <p style="margin:6px 0;color:var(--text-secondary);font-size:13px;">Локально — отдельная копия только на этом устройстве. Облачно — обновится общая викторина, доступная по ссылке.</p>
+                ${canPublish ? `
+                    <select class="select-field" id="quizEditSaveMode" style="margin-top:8px;">
+                        <option value="local">На этом устройстве</option>
+                        <option value="cloud">В облаке (общая версия)</option>
+                    </select>
+                    <small id="quizEditModeWarning" style="display:block;margin-top:7px;color:var(--text-secondary);">Создастся локальная копия; исходная облачная викторина не изменится.</small>
+                ` : `
+                    <div style="margin-top:8px;padding:10px;border-radius:10px;background:var(--surface-secondary,rgba(128,128,128,.12));font-size:13px;">
+                        ${isCloudQuiz ? '⚠️ Это облачная викторина другого автора или старая запись без владельца. Общую версию может менять только её автор из своего аккаунта. Ты можешь свободно редактировать свою локальную копию.' : 'Изменения будут сохранены только на этом устройстве.'}
+                    </div>
+                `}
+            </div>
             <div class="form-group">
                 <label>Название викторины</label>
                 <input type="text" class="input-field" id="editorQuizName" value="${esc(quiz.name)}">
             </div>
-
-            <div style="margin:12px 0;font-weight:600;">Треки (${quiz.tracks.length})</div>
-            <div id="editorTrackList">
-                ${quiz.tracks.map((t, i) => `
-                    <div class="edit-track-item" style="display:flex; gap:10px; margin-bottom:8px;">
-                        <input type="text" class="input-field track-title-edit" data-index="${i}" value="${esc(t.title)}" style="flex:1; padding:8px 12px;">
-                        <button class="btn btn-sm btn-danger remove-track-btn" data-index="${i}">✖</button>
-                    </div>
-                `).join('')}
-            </div>
-
+            <div style="margin:12px 0;font-weight:600;">Треки (${workingTracks.length})</div>
+            <div id="editorTrackList"></div>
             <div class="form-group" style="margin-top:16px;">
                 <label for="editorMp3Files">Добавить MP3 в эту викторину</label>
                 <input type="file" id="editorMp3Files" accept=".mp3,audio/mpeg" multiple class="input-field" style="padding:10px;">
-                <small style="display:block;margin-top:6px;color:var(--text-secondary);">Новые треки добавятся к существующим. Уже добавленные треки останутся на месте.</small>
+                <small style="display:block;margin-top:6px;color:var(--text-secondary);">Новые треки добавятся к существующим. Уже добавленные останутся на месте.</small>
             </div>
             <div id="editorUploadProgress" class="hidden" style="margin-top:14px;"></div>
             <div style="margin-top:16px;">
                 <button class="btn btn-primary" id="editorSaveBtn">💾 Сохранить</button>
                 <button class="btn btn-secondary" onclick="showQuizDetail('${esc(quizId)}')" style="margin-top:8px;">Отмена</button>
             </div>
-        </div>
-    `;
+        </div>`;
+    renderEditorTracks();
 
-    container.querySelectorAll('.remove-track-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const idx = parseInt(this.dataset.index, 10);
-            if (confirm(`Удалить трек "${quiz.tracks[idx].title}"?`)) {
-                quiz.tracks.splice(idx, 1);
-                saveAppData();
-                window.editQuizName(quizId);
-            }
-        });
+    const modeSelect = document.getElementById('quizEditSaveMode');
+    if (modeSelect) modeSelect.addEventListener('change', () => {
+        const warning = document.getElementById('quizEditModeWarning');
+        if (warning) warning.textContent = modeSelect.value === 'cloud'
+            ? 'Общая облачная версия будет обновлена для всех, кто открывает эту викторину по ссылке.'
+            : 'Создастся локальная копия; исходная облачная викторина не изменится.';
     });
 
     document.getElementById('editorSaveBtn').addEventListener('click', async function () {
         const newName = document.getElementById('editorQuizName').value.trim();
         if (!newName) { alert('Введите название викторины'); return; }
+        const saveMode = modeSelect ? modeSelect.value : 'local';
+        const freshUser = await getMuQwizUser();
+        if (saveMode === 'cloud' && (!freshUser || !canPublish || (isCloudQuiz && freshUser.id !== quiz.owner_id))) {
+            alert('Облачное редактирование доступно только автору викторины, вошедшему в свой аккаунт.');
+            return;
+        }
+        const titleInputs = container.querySelectorAll('.track-title-edit');
+        titleInputs.forEach(inp => { const idx = Number(inp.dataset.index); if (workingTracks[idx]) workingTracks[idx].title = inp.value.trim() || 'Без названия'; });
 
-        container.querySelectorAll('.track-title-edit').forEach(inp => {
-            const idx = parseInt(inp.dataset.index, 10);
-            if (quiz.tracks[idx]) {
-                quiz.tracks[idx].title = inp.value.trim() || 'Без названия';
-            }
-        });
-
-        quiz.name = newName;
-        const mp3Input = document.getElementById('editorMp3Files');
-        const addedFiles = mp3Input ? Array.from(mp3Input.files || []) : [];
-        if (addedFiles.length) {
-            if (!db) { alert('Для загрузки MP3 нужно подключение к облаку. Остальные изменения не потеряны.'); return; }
-            const invalid = addedFiles.find(file => !(file.name.toLowerCase().endsWith('.mp3') || file.type === 'audio/mpeg'));
-            if (invalid) { alert('Можно добавлять только MP3-файлы.'); return; }
-            const saveButton = document.getElementById('editorSaveBtn');
-            const uploadProgress = createUploadProgress(document.getElementById('editorUploadProgress'), addedFiles);
-            saveButton.disabled = true; saveButton.textContent = '⏳ Загружаем MP3…';
-            try {
+        const addedFiles = Array.from(document.getElementById('editorMp3Files')?.files || []);
+        const invalid = addedFiles.find(file => !(file.name.toLowerCase().endsWith('.mp3') || file.type === 'audio/mpeg'));
+        if (invalid) { alert('Можно добавлять только MP3-файлы.'); return; }
+        const saveButton = document.getElementById('editorSaveBtn');
+        saveButton.disabled = true;
+        try {
+            if (addedFiles.length) {
+                if (!db) throw new Error('Для загрузки MP3 требуется подключение к хранилищу.');
+                const uploadProgress = createUploadProgress(document.getElementById('editorUploadProgress'), addedFiles);
                 for (let i = 0; i < addedFiles.length; i++) {
                     const file = addedFiles[i];
                     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                     const fileName = `editor_${Date.now()}_${i}_${safeName}`;
                     try {
                         const publicUrl = await uploadStorageFileWithProgress(file, fileName, uploadProgress, i, 'audio/mpeg');
-                        quiz.tracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: publicUrl });
-                    } catch (error) {
-                        uploadProgress.fail(i);
-                        throw new Error(`${file.name}: ${error.message}`);
-                    }
+                        workingTracks.push({ title: file.name.replace(/\.mp3$/i, ''), file: publicUrl });
+                    } catch (error) { uploadProgress.fail(i); throw new Error(`${file.name}: ${error.message}`); }
                 }
-            } catch (uploadError) {
-                saveButton.disabled = false; saveButton.textContent = '💾 Сохранить';
-                alert('Не удалось загрузить MP3: ' + uploadError.message + '\nУже загруженные файлы могут остаться в хранилище; повтори сохранение.');
-                return;
             }
-            saveButton.disabled = false; saveButton.textContent = '💾 Сохранить';
-        }
-        saveAppData();
 
-        if (db && quizId.startsWith('cloud_')) {
-            const cleanId = quizId.replace('cloud_', '');
-            try {
-                const { error } = await db.from('quizzes').update({
-                    name: quiz.name,
-                    tracks: quiz.tracks
-                }).eq('id', cleanId);
-
-                if (error) throw error;
-                alert('✅ Изменения сохранены в облаке!');
-            } catch (err) {
-                console.error('Ошибка обновления:', err);
-                alert('❌ Не удалось обновить в облаке: ' + err.message);
+            if (saveMode === 'cloud') {
+                if (!db) throw new Error('Облако недоступно.');
+                const payload = { name: newName, tracks: workingTracks };
+                if (isCloudQuiz) {
+                    const cleanId = quizId.replace('cloud_', '');
+                    const { data, error } = await db.from('quizzes').update(payload).eq('id', cleanId).eq('owner_id', freshUser.id).select('id,owner_id').single();
+                    if (error) throw error;
+                    if (!data) throw new Error('Обновление не подтверждено сервером.');
+                    quiz.name = newName; quiz.tracks = workingTracks; quiz.owner_id = data.owner_id;
+                } else {
+                    const { data, error } = await db.from('quizzes').insert([{ ...payload, owner_id: freshUser.id }]).select('id,owner_id').single();
+                    if (error) throw error;
+                    const oldIndex = APP.library.findIndex(item => item.id === quizId);
+                    const published = { id: 'cloud_' + data.id, name: newName, tracks: workingTracks, owner_id: data.owner_id };
+                    if (oldIndex >= 0) APP.library.splice(oldIndex, 1, published);
+                }
+                saveAppData();
+                alert('✅ Изменения сохранены в общей облачной викторине!');
+            } else {
+                const localCopy = {
+                    id: quiz.deviceOnly || !isCloudQuiz ? quiz.id : `device_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    name: newName,
+                    tracks: workingTracks,
+                    deviceOnly: true,
+                    originCloudId: quiz.originCloudId || (isCloudQuiz ? quizId.replace('cloud_', '') : null)
+                };
+                const oldIndex = APP.library.findIndex(item => item.id === quizId);
+                if (oldIndex >= 0 && !isCloudQuiz) APP.library.splice(oldIndex, 1, localCopy);
+                else APP.library.push(localCopy);
+                saveAppData();
+                alert('✅ Изменения сохранены только на этом устройстве. Общая версия не затронута.');
             }
-        } else {
-            alert('✅ Изменения сохранены локально!');
+            const resultQuizId = saveMode === 'cloud' && !isCloudQuiz ? APP.library.find(q => q.name === newName && q.id.startsWith('cloud_'))?.id : (saveMode === 'local' && isCloudQuiz ? APP.library[APP.library.length - 1].id : quizId);
+            showQuizDetail(resultQuizId || quizId);
+        } catch (err) {
+            console.error('Ошибка сохранения викторины:', err);
+            alert('❌ Не удалось сохранить изменения: ' + err.message);
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = '💾 Сохранить';
         }
-
-        showQuizDetail(quizId);
     });
 };
 
@@ -671,6 +713,21 @@ function initAddForm() {
     const fileDiv = document.getElementById('addMethodFiles');
     const gdriveDiv = document.getElementById('addMethodGdrive');
     const manualDiv = document.getElementById('addMethodManual');
+
+    const createModeSelect = document.getElementById('quizCreateSaveMode');
+    const createModeWarning = document.getElementById('quizCreateModeWarning');
+    if (createModeSelect) {
+        getMuQwizUser().then(user => {
+            const cloudOption = createModeSelect.querySelector('option[value="cloud"]');
+            if (cloudOption && !user) cloudOption.disabled = true;
+            if (!user && createModeWarning) createModeWarning.textContent = 'Гостевой режим: доступно только локальное сохранение. Для общей облачной викторины войди в аккаунт.';
+        });
+        createModeSelect.addEventListener('change', () => {
+            if (createModeWarning) createModeWarning.textContent = createModeSelect.value === 'cloud'
+                ? 'Облачную викторину смогут открывать другие по ссылке. Изменять её общую версию сможет только твой аккаунт.'
+                : 'Локальную викторину можно редактировать на этом устройстве. Она не появится у других пользователей.';
+        });
+    }
 
     if (addMethodSelect && fileDiv && gdriveDiv && manualDiv) {
         addMethodSelect.addEventListener('change', function () {
@@ -737,6 +794,9 @@ function initAddForm() {
         const method = methodEl ? methodEl.value : 'files';
         if (!name) { alert('Введите название'); return; }
 
+        const saveMode = document.getElementById('quizCreateSaveMode')?.value || 'local';
+        const currentUser = await getMuQwizUser();
+        if (saveMode === 'cloud' && !currentUser) { alert('Чтобы создать общую облачную викторину, войди в аккаунт.'); return; }
         let tracks = [];
         const saveBtn = saveQuizBtn;
         saveBtn.textContent = '⏳ Обработка...';
@@ -803,24 +863,19 @@ function initAddForm() {
                 }
             }
 
-            const newQuiz = { id: 'local_' + Date.now(), name: name, tracks: tracks };
-            APP.library.push(newQuiz);
-            saveAppData();
-
-            if (db) {
-                try {
-                    const { data, error } = await db.from('quizzes').insert([{ name: name, tracks: tracks }]).select();
-                    if (error) throw error;
-                    if (data && data[0]) {
-                        newQuiz.id = 'cloud_' + data[0].id;
-                        saveAppData();
-                    }
-                    alert(`✅ Викторина "${name}" сохранена в облаке!`);
-                } catch (err) {
-                    alert(`✅ Викторина "${name}" сохранена локально (${err.message})`);
-                }
+            let newQuiz;
+            if (saveMode === 'cloud') {
+                const { data, error } = await db.from('quizzes').insert([{ name, tracks, owner_id: currentUser.id }]).select('id,owner_id').single();
+                if (error) throw error;
+                newQuiz = { id: 'cloud_' + data.id, name, tracks, owner_id: data.owner_id };
+                APP.library.push(newQuiz);
+                saveAppData();
+                alert(`✅ Викторина «${name}» создана в облаке. Ты — её автор.`);
             } else {
-                alert('✅ Викторина сохранена локально');
+                newQuiz = { id: 'device_' + Date.now(), name, tracks, deviceOnly: true };
+                APP.library.push(newQuiz);
+                saveAppData();
+                alert(`✅ Викторина «${name}» сохранена только на этом устройстве.`);
             }
 
             // Очистка формы
@@ -874,7 +929,7 @@ function initSharedLoader() {
             if (error) throw error;
 
             if (data) {
-                const newQuiz = { id: 'cloud_' + data.id, name: data.name, tracks: data.tracks || [] };
+                const newQuiz = { id: 'cloud_' + data.id, name: data.name, tracks: data.tracks || [], owner_id: data.owner_id || null };
                 if (!APP.library.some(q => q.id === newQuiz.id)) {
                     APP.library.push(newQuiz);
                     saveAppData();

@@ -10,11 +10,12 @@
   const say=msg=>{const el=$('mq-auth-message')||$('mq-account-message');if(el)el.textContent=msg;};
   const status=msg=>{document.querySelectorAll('#mq-account-status').forEach(el=>el.textContent=msg);};
   const stable=x=>Array.isArray(x)?x.map(stable):(x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,stable(x[k])])):x);
-  const normalize=x=>({user:x?.user||{name:''},library:Array.isArray(x?.library)?x.library:[],results:Array.isArray(x?.results)?x.results:[],notes:x?.notes&&typeof x.notes==='object'?x.notes:{},favorites:Array.isArray(x?.favorites)?x.favorites:[],settings:x?.settings||{theme:'light'}});
+  const normalize=x=>({user:x?.user||{name:''},library:Array.isArray(x?.library)?x.library.filter(item=>!item?.deviceOnly):[],results:Array.isArray(x?.results)?x.results:[],notes:x?.notes&&typeof x.notes==='object'?x.notes:{},favorites:Array.isArray(x?.favorites)?x.favorites:[],settings:x?.settings||{theme:'light'}});
   const json=x=>JSON.stringify(stable(normalize(x)));
   const localSnapshot=()=>{try{return normalize(JSON.parse(localStorage.getItem('muqwiz_data')||'{}'));}catch{return normalize({});}};
-  function saveLocal(data){localStorage.setItem('muqwiz_data',JSON.stringify(normalize(data)));}
-  function apply(data){const n=normalize(data);if(typeof APP!=='undefined')Object.assign(APP,n);saveLocal(n);try{if(n.user?.name){const onboarding=document.getElementById('onboarding'),app=document.getElementById('app');if(onboarding)onboarding.classList.add('hidden');if(app)app.classList.remove('hidden');}if(typeof applyTheme==='function')applyTheme();if(typeof renderLibrary==='function')renderLibrary();if(typeof renderResults==='function')renderResults();if(typeof renderSettings==='function')renderSettings();if(typeof renderPrepareSelect==='function')renderPrepareSelect();}catch(e){console.warn('Refresh after cloud sync',e);}}
+  function deviceOnlyLibrary(){try{return JSON.parse(localStorage.getItem('muqwiz_data')||'{}').library?.filter(item=>item?.deviceOnly)||[];}catch{return [];}}
+  function saveLocal(data){const n=normalize(data);n.library=[...n.library,...deviceOnlyLibrary()];localStorage.setItem('muqwiz_data',JSON.stringify(n));}
+  function apply(data){const n=normalize(data);n.library=[...n.library,...deviceOnlyLibrary()];if(typeof APP!=='undefined')Object.assign(APP,n);saveLocal(n);try{if(n.user?.name){const onboarding=document.getElementById('onboarding'),app=document.getElementById('app');if(onboarding)onboarding.classList.add('hidden');if(app)app.classList.remove('hidden');}if(typeof applyTheme==='function')applyTheme();if(typeof renderLibrary==='function')renderLibrary();if(typeof renderResults==='function')renderResults();if(typeof renderSettings==='function')renderSettings();if(typeof renderPrepareSelect==='function')renderPrepareSelect();}catch(e){console.warn('Refresh after cloud sync',e);}}
   function merge(local,cloud){
     const out=normalize(cloud), l=normalize(local);
     const keyed=(arr)=>new Map(arr.map((x,i)=>[String(x?.id??`${x?.name||x?.title||'item'}_${i}`),x]));
