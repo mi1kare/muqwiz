@@ -9,13 +9,13 @@
 }
 
 :root {
-    --bg: #f5f0eb;
-    --card: #ffffff;
-    --text: #2c2c2c;
-    --text-secondary: #6b5a4a;
-    --border: #e8ddd0;
-    --accent: #8b3a2a;
-    --accent-hover: #6b2a1a;
+    --bg: #f6efe8;
+    --card: rgba(255, 251, 246, 0.94);
+    --text: #382522;
+    --text-secondary: #80675b;
+    --border: #e6d5c8;
+    --accent: #783b3c;
+    --accent-hover: #5f2c30;
     --gold: #f5a623;
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
     --radius: 20px;
@@ -27,7 +27,11 @@
 
 body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
     /* ФИКС: Безопасная зона iPhone */
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -136,7 +140,11 @@ body.dark {
     border: 2px solid var(--border);
     border-radius: var(--radius-sm);
     font-size: 16px;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
     transition: 0.2s;
 }
@@ -151,7 +159,11 @@ body.dark {
     border: 2px solid var(--border);
     border-radius: var(--radius-sm);
     font-size: 16px;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
     appearance: none;
 }
@@ -454,7 +466,11 @@ body.dark {
     border: 2px solid var(--border);
     border-radius: var(--radius-sm);
     font-size: 15px;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
     transition: 0.2s;
     min-width: 0;
@@ -528,7 +544,11 @@ body.dark {
     border: 2px solid var(--border);
     border-radius: 30px;
     font-size: 13px;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
     width: 140px;
 }
@@ -633,7 +653,11 @@ body.dark {
     border: 2px solid var(--border);
     border-radius: 30px;
     font-size: 14px;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
 }
 
@@ -752,7 +776,11 @@ body.dark {
     font-size: 18px;
     text-align: center;
     margin: 12px 0;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
 }
 .game-input:focus {
@@ -948,7 +976,11 @@ body.dark {
 }
 .settings-row select,
 .settings-row input[type="range"] {
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text);
     border: 2px solid var(--border);
     border-radius: 30px;
@@ -1033,3 +1065,11 @@ body.dark {
 .upload-progress-file-status.is-error { color: #c65353; }
 .upload-progress-file-track { height: 4px; margin-top: 5px; }
 .upload-progress-file-fill { background: var(--accent, #438a75); }
+
+/* MuQwiz — мягкий классический фон и единый набор векторных иконок */
+body.dark { background-image: none; }
+.card, .quiz-card, .modal, .form-card { backdrop-filter: blur(8px); }
+.lucide-inline { width: 1.05em; height: 1.05em; stroke-width: 1.8; vertical-align: -0.16em; flex: 0 0 auto; color: currentColor; }
+.bottom-nav .lucide-inline, .icon .lucide-inline { width: 20px; height: 20px; vertical-align: middle; }
+.page-title .lucide-inline { width: 23px; height: 23px; margin-right: 5px; }
+@media (max-width: 600px) { body { background-attachment: scroll; background-size: auto 100vh; } }
