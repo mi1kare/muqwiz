@@ -19,20 +19,6 @@
 
     <!-- Google Identity Services (для OAuth и скачивания с Google Drive) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://unpkg.com/lucide@latest" defer></script>
-<script>
-(function(){
- const icons={"📚":"library","📖":"book-open","🎧":"headphones","🎯":"target","📊":"chart-no-axes-column-increasing","⚙️":"settings","⚙":"settings","📂":"folder-open","❤️":"heart","📥":"download","➕":"plus","🎵":"music-2","🚀":"rocket","📁":"folder","☁️":"cloud","☁":"cloud","🔑":"key-round","🔍":"search","💾":"save","🔀":"shuffle","⏮":"skip-back","⏭":"skip-forward","📭":"inbox","🗑️":"trash-2","🗑":"trash-2","▶️":"play","▶":"play","⏸":"pause","⭐":"star","✏️":"pencil","✏":"pencil","❌":"x","✅":"check","🔗":"link","🔒":"lock","👤":"user-round","📤":"upload","🔄":"refresh-cw","ℹ️":"info","ℹ":"info","🏠":"house","🎼":"music"};
- const re=new RegExp(Object.keys(icons).sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g');
- function convert(root){
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); const nodes=[];
-  while(walker.nextNode()) if(re.test(walker.currentNode.nodeValue)){nodes.push(walker.currentNode);re.lastIndex=0;}
-  nodes.forEach(node=>{const value=node.nodeValue;const frag=document.createDocumentFragment();let last=0;value.replace(re,(match,offset)=>{frag.append(document.createTextNode(value.slice(last,offset)));const i=document.createElement('i');i.setAttribute('data-lucide',icons[match]||'music-2');i.className='lucide-inline';frag.append(i);last=offset+match.length;return match;});frag.append(document.createTextNode(value.slice(last)));node.parentNode.replaceChild(frag,node);});
-  if(window.lucide) window.lucide.createIcons({attrs:{'stroke-width':1.8}});
- }
- document.addEventListener('DOMContentLoaded',()=>{convert(document.body);const observer=new MutationObserver(records=>records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1)convert(n);else if(n.nodeType===3&&n.parentNode)convert(n.parentNode);})));observer.observe(document.body,{childList:true,subtree:true});});
-})();
-</script>
 </head>
 <body>
 
