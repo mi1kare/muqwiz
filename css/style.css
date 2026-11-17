@@ -28,7 +28,7 @@
 body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -141,7 +141,7 @@ body.dark {
     border-radius: var(--radius-sm);
     font-size: 16px;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -160,7 +160,7 @@ body.dark {
     border-radius: var(--radius-sm);
     font-size: 16px;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -467,7 +467,7 @@ body.dark {
     border-radius: var(--radius-sm);
     font-size: 15px;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -545,7 +545,7 @@ body.dark {
     border-radius: 30px;
     font-size: 13px;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -654,7 +654,7 @@ body.dark {
     border-radius: 30px;
     font-size: 14px;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -777,7 +777,7 @@ body.dark {
     text-align: center;
     margin: 12px 0;
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -977,7 +977,7 @@ body.dark {
 .settings-row select,
 .settings-row input[type="range"] {
     background-color: var(--bg);
-    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.png');
+    background-image: linear-gradient(rgba(250, 245, 239, .72), rgba(250, 245, 239, .82)), url('../assets/muqwiz-background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
